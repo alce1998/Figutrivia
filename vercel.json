@@ -1,0 +1,13 @@
+{
+  "buildCommand": "npx vite build",
+  "outputDirectory": "dist/public",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "client/public/data/figutrivia_players.json"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

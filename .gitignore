@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.local
+scripts/cache/
+scripts/output/
+twa-android/
+*.log
+.DS_Store

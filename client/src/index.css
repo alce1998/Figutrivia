@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-display: "Chakra Petch", sans-serif;
+  --font-mono: "Space Mono", monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+}
+
+:root {
+  --background: oklch(0.95 0.025 12);
+  --foreground: oklch(0.18 0.02 264);
+  --card: oklch(0.98 0.015 12);
+  --card-foreground: oklch(0.18 0.02 264);
+  --primary: oklch(0.62 0.22 15);
+  --primary-foreground: oklch(0.99 0 0);
+  --muted: oklch(0.91 0.02 12);
+  --muted-foreground: oklch(0.45 0.02 264);
+  --border: oklch(0.18 0.02 264);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+.flex {
+  min-height: 0;
+  min-width: 0;
+}

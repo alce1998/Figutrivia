@@ -1,0 +1,224 @@
+export type AlbumDecadeKey =
+  | "1980-89"
+  | "1990-99"
+  | "2000-09"
+  | "2010-19"
+  | "2020-oggi";
+
+export interface AlbumDecadeInfo {
+  key: AlbumDecadeKey;
+  label: string;
+  subtitle: string;
+  badgeColor: string;
+}
+
+export const ALBUM_DECADES: AlbumDecadeInfo[] = [
+  {
+    key: "1980-89",
+    label: "1979–89",
+    subtitle: "Stagioni 1979/80 – 1989/90 (e presenze prec.)",
+    badgeColor: "bg-amber-400",
+  },
+  {
+    key: "1990-99",
+    label: "1990–99",
+    subtitle: "Stagioni 1990/91 – 1999/00",
+    badgeColor: "bg-emerald-400",
+  },
+  {
+    key: "2000-09",
+    label: "2000–09",
+    subtitle: "Stagioni 2000/01 – 2009/10",
+    badgeColor: "bg-sky-400",
+  },
+  {
+    key: "2010-19",
+    label: "2010–19",
+    subtitle: "Stagioni 2010/11 – 2019/20",
+    badgeColor: "bg-violet-400",
+  },
+  {
+    key: "2020-oggi",
+    label: "2020–oggi",
+    subtitle: "Stagioni 2020/21 – oggi",
+    badgeColor: "bg-rose-400",
+  },
+];
+
+export interface FigurinaPlayer {
+  numero: number;
+  global_rank: number;
+  player_id: string;
+  name: string;
+  birth_year: number | null;
+  photo_url: string;
+  serie_a_apps: number;
+  decade_apps: Record<AlbumDecadeKey, number>;
+  album_decade: AlbumDecadeKey;
+  nationality: string;
+  position: string;
+}
+
+export const HINT_COSTS = {
+  anno_ruolo: 1,
+  nazionalita_presenze: 1,
+  iniziali: 3,
+} as const;
+
+export type HintType = keyof typeof HINT_COSTS;
+
+export const MAX_MANCOLISTA_SIZE = 50;
+export const MAX_DAILY_GIFTS = 5;
+
+/**
+ * Calcola i punti indizio guadagnati indovinando un giocatore in base alle presenze in Serie A:
+ * - >= 400 presenze: 1 pt
+ * - 300..399 presenze: 2 pt
+ * - 200..299 presenze: 3 pt
+ * - 100..199 presenze: 4 pt
+ * - 51..99 presenze (+50): 5 pt
+ */
+export function getPointsForAppearances(apps: number): number {
+  if (apps >= 400) return 1;
+  if (apps >= 300) return 2;
+  if (apps >= 200) return 3;
+  if (apps >= 100) return 4;
+  return 5;
+}
+
+export interface TrophyDefinition {
+  id: string;
+  title: string;
+  description: string;
+  category: "milestone" | "album";
+  threshold?: number;
+  decade?: AlbumDecadeKey;
+  icon: string;
+}
+
+export const TROPHIES: TrophyDefinition[] = [
+  {
+    id: "found_100",
+    title: "Primo Centinaio",
+    description: "Trova 100 giocatori negli album FiguTrivia",
+    category: "milestone",
+    threshold: 100,
+    icon: "🥉",
+  },
+  {
+    id: "found_500",
+    title: "Collezionista Esperto",
+    description: "Trova 500 giocatori negli album FiguTrivia",
+    category: "milestone",
+    threshold: 500,
+    icon: "🥈",
+  },
+  {
+    id: "found_1000",
+    title: "Mille Figurine",
+    description: "Trova 1.000 giocatori negli album FiguTrivia",
+    category: "milestone",
+    threshold: 1000,
+    icon: "🥇",
+  },
+  {
+    id: "found_5000",
+    title: "Archivio Vivente",
+    description: "Trova 5.000 giocatori negli album FiguTrivia",
+    category: "milestone",
+    threshold: 5000,
+    icon: "💎",
+  },
+  {
+    id: "found_10000",
+    title: "Leggenda Assoluta",
+    description: "Trova 10.000 giocatori negli album FiguTrivia",
+    category: "milestone",
+    threshold: 10000,
+    icon: "👑",
+  },
+  ...ALBUM_DECADES.map((d) => ({
+    id: `album_${d.key}`,
+    title: `Album ${d.label} Completo`,
+    description: `Sblocca tutte le figurine dell'album ${d.label}`,
+    category: "album" as const,
+    decade: d.key,
+    icon: "🏆",
+  })),
+];
+
+export function normalizePlayerStr(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim();
+}
+
+const COMPOUND_GIVEN_NAMES = new Set([
+  "gian marco",
+  "jose luis",
+  "fabian natale",
+  "antonio carlos",
+  "john arne",
+  "marc oliver",
+  "tore andre",
+  "juan pablo",
+  "joseph dayo",
+  "ramos borges",
+  "pier luigi",
+  "gian luca",
+  "jean pierre",
+  "jan vennegoor",
+  "luis antonio",
+  "marco antonio",
+  "carlos alberto",
+  "paulo cesar",
+  "paulo roberto",
+  "pedro pablo",
+]);
+
+export function extractSurname(fullName: string): string {
+  const cleaned = fullName.replace(/\s+Jr\.?$/i, "").trim();
+  const parts = cleaned.split(/\s+/);
+  if (parts.length <= 1) return parts[0] || fullName;
+  if (parts.length === 2) return parts[1];
+  const firstTwo = normalizePlayerStr(`${parts[0]} ${parts[1]}`);
+  if (COMPOUND_GIVEN_NAMES.has(firstTwo)) {
+    return parts.slice(2).join(" ");
+  }
+  return parts.slice(1).join(" ");
+}
+
+export function matchesPlayerName(guess: string, fullName: string): boolean {
+  const normGuess = normalizePlayerStr(guess);
+  const normFull = normalizePlayerStr(fullName);
+  const normSurname = normalizePlayerStr(extractSurname(fullName));
+  if (!normGuess) return false;
+  return normGuess === normFull || normGuess === normSurname;
+}
+
+export function getSurnameInitials(fullName: string): string {
+  const surname = extractSurname(fullName);
+  return surname
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => {
+      if (word.includes("-")) {
+        return word
+          .split("-")
+          .filter(Boolean)
+          .map((w) => w[0].toUpperCase() + ".")
+          .join("-");
+      }
+      const apoIdx = word.search(/['’]/);
+      if (apoIdx > 0 && apoIdx <= 4 && word.length - 1 - apoIdx >= 2) {
+        const prefix = word.slice(0, apoIdx);
+        const after = word.slice(apoIdx + 1);
+        return prefix[0].toUpperCase() + "'" + after[0].toUpperCase() + ".";
+      }
+      return word[0].toUpperCase() + ".";
+    })
+    .join(" ");
+}
