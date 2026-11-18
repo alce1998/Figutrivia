@@ -38,6 +38,10 @@ import {
 import { AuthModal } from "@/components/AuthModal";
 import { ErrorReportModal } from "@/components/ErrorReportModal";
 import { FigurinaSolvedOverlay } from "@/components/FigurineCard";
+import {
+  GiftRevealModal,
+  type ReceivedGiftItem,
+} from "@/components/GiftRevealModal";
 import { MancolisteView } from "@/components/MancolisteView";
 import { ProtectedImage } from "@/components/ProtectedImage";
 import { TrophiesView } from "@/components/TrophiesView";
@@ -212,7 +216,46 @@ export default function App() {
   } = trpc.auth.me.useQuery();
 
   const { data: albumState, refetch: refetchAlbumState } =
-    trpc.album.getState.useQuery(undefined, { enabled: !!user });
+    trpc.album.getState.useQuery(undefined, {
+      enabled: !!user,
+      refetchInterval: 12000,
+      refetchOnWindowFocus: true,
+    });
+
+  const [seenGiftIds, setSeenGiftIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (!user) {
+      setSeenGiftIds(new Set());
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(`figutrivia_seen_gifts_${user.id}`);
+      if (raw) {
+        const parsed = JSON.parse(raw) as number[];
+        setSeenGiftIds(new Set(parsed));
+      } else {
+        setSeenGiftIds(new Set());
+      }
+    } catch {
+      setSeenGiftIds(new Set());
+    }
+  }, [user?.id]);
+
+  const markGiftSeen = (giftId: number) => {
+    if (!user) return;
+    setSeenGiftIds((prev) => {
+      const next = new Set(prev);
+      next.add(giftId);
+      try {
+        localStorage.setItem(
+          `figutrivia_seen_gifts_${user.id}`,
+          JSON.stringify(Array.from(next))
+        );
+      } catch {}
+      return next;
+    });
+  };
 
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: async () => {
@@ -535,6 +578,7 @@ export default function App() {
             onClick={() => {
               setActiveTab("album");
               setSelectedPlayer(null);
+              if (user) refetchAlbumState();
             }}
             className={`px-2 py-1 sm:px-3 sm:py-1.5 font-display font-black uppercase text-[11px] sm:text-xs border-2 border-black flex items-center gap-1 sm:gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
               activeTab === "album"
@@ -551,6 +595,7 @@ export default function App() {
               if (!requireAuth()) return;
               setActiveTab("mancoliste");
               setSelectedPlayer(null);
+              refetchAlbumState();
             }}
             className={`px-2 py-1 sm:px-3 sm:py-1.5 font-display font-black uppercase text-[11px] sm:text-xs border-2 border-black flex items-center gap-1 sm:gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
               activeTab === "mancoliste"
@@ -570,6 +615,7 @@ export default function App() {
               if (!requireAuth()) return;
               setActiveTab("trofei");
               setSelectedPlayer(null);
+              refetchAlbumState();
             }}
             className={`px-2 py-1 sm:px-3 sm:py-1.5 font-display font-black uppercase text-[11px] sm:text-xs border-2 border-black flex items-center gap-1 sm:gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
               activeTab === "trofei"
@@ -1381,6 +1427,28 @@ export default function App() {
         player={reportPlayer}
         onClose={() => setReportPlayer(null)}
       />
+
+      {(() => {
+        const unseenGifts: ReceivedGiftItem[] = (
+          albumState?.receivedGifts ?? []
+        ).filter((g) => !seenGiftIds.has(g.id) && playersById.has(g.playerId));
+        const currentGift = unseenGifts[0];
+        if (!currentGift) return null;
+        const giftedPlayer = playersById.get(currentGift.playerId);
+        if (!giftedPlayer) return null;
+        return (
+          <GiftRevealModal
+            gift={currentGift}
+            player={giftedPlayer}
+            remainingCount={unseenGifts.length}
+            onConfirm={() => markGiftSeen(currentGift.id)}
+            onOpenPlayerInAlbum={(p) => {
+              markGiftSeen(currentGift.id);
+              openPlayerDetail(p);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

@@ -669,7 +669,8 @@ var appRouter = router({
         giftsTodayRows,
         usersCountRows,
         discoveryRows,
-        allUsersRows
+        allUsersRows,
+        receivedGiftsRows
       ] = await Promise.all([
         db.select().from(figutriviaProgress).where(eq2(figutriviaProgress.userId, ctx.user.id)),
         db.select().from(figutriviaPoints).where(eq2(figutriviaPoints.userId, ctx.user.id)).limit(1),
@@ -689,7 +690,8 @@ var appRouter = router({
         db.select({
           id: figutriviaUsers.id,
           username: figutriviaUsers.username
-        }).from(figutriviaUsers)
+        }).from(figutriviaUsers),
+        db.select().from(figutriviaMancolistaGifts).where(eq2(figutriviaMancolistaGifts.recipientUserId, ctx.user.id))
       ]);
       const usernameById = new Map(allUsersRows.map((u) => [u.id, u.username]));
       const discoveryCounts = {};
@@ -697,20 +699,40 @@ var appRouter = router({
         discoveryCounts[r.playerId] = Number(r.cnt);
       }
       const dailyGiftsUsed = Number(giftsTodayRows[0]?.cnt ?? 0);
+      const progressList = progressRows.map((p) => ({
+        playerId: p.playerId,
+        solved: p.solved === 1,
+        hintsUsed: (() => {
+          try {
+            return JSON.parse(p.hintsUsed || "[]");
+          } catch {
+            return [];
+          }
+        })(),
+        pointsAwarded: p.pointsAwarded,
+        unlockedByUsername: p.unlockedByUserId ? usernameById.get(p.unlockedByUserId) ?? null : null
+      }));
+      const progByPlayerId = new Map(progressList.map((p) => [p.playerId, p]));
+      for (const g of receivedGiftsRows) {
+        const senderName = usernameById.get(g.senderUserId) ?? "Un amico";
+        const ex = progByPlayerId.get(g.playerId);
+        if (!ex) {
+          const item = {
+            playerId: g.playerId,
+            solved: true,
+            hintsUsed: [],
+            pointsAwarded: 0,
+            unlockedByUsername: senderName
+          };
+          progressList.push(item);
+          progByPlayerId.set(g.playerId, item);
+        } else if (!ex.solved) {
+          ex.solved = true;
+          ex.unlockedByUsername = senderName;
+        }
+      }
       return {
-        progress: progressRows.map((p) => ({
-          playerId: p.playerId,
-          solved: p.solved === 1,
-          hintsUsed: (() => {
-            try {
-              return JSON.parse(p.hintsUsed || "[]");
-            } catch {
-              return [];
-            }
-          })(),
-          pointsAwarded: p.pointsAwarded,
-          unlockedByUsername: p.unlockedByUserId ? usernameById.get(p.unlockedByUserId) ?? null : null
-        })),
+        progress: progressList,
         points: pointsRows[0]?.points ?? 0,
         totalEarned: pointsRows[0]?.totalEarned ?? 0,
         achievements: achRows.map((a) => ({
@@ -721,7 +743,13 @@ var appRouter = router({
         dailyGiftsUsed,
         dailyGiftsRemaining: Math.max(0, MAX_DAILY_GIFTS - dailyGiftsUsed),
         totalUsers: Number(usersCountRows[0]?.cnt ?? 1) || 1,
-        discoveryCounts
+        discoveryCounts,
+        receivedGifts: receivedGiftsRows.map((g) => ({
+          id: g.id,
+          playerId: g.playerId,
+          senderUsername: usernameById.get(g.senderUserId) ?? "Un amico",
+          createdAt: g.createdAt
+        }))
       };
     }),
     guessPlayer: protectedProcedure.input(

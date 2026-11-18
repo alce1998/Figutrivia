@@ -184,6 +184,7 @@ export const appRouter = router({
         usersCountRows,
         discoveryRows,
         allUsersRows,
+        receivedGiftsRows,
       ] = await Promise.all([
         db
           .select()
@@ -226,6 +227,10 @@ export const appRouter = router({
             username: figutriviaUsers.username,
           })
           .from(figutriviaUsers),
+        db
+          .select()
+          .from(figutriviaMancolistaGifts)
+          .where(eq(figutriviaMancolistaGifts.recipientUserId, ctx.user.id)),
       ]);
 
       const usernameById = new Map(allUsersRows.map((u) => [u.id, u.username]));
@@ -236,22 +241,45 @@ export const appRouter = router({
 
       const dailyGiftsUsed = Number(giftsTodayRows[0]?.cnt ?? 0);
 
+      const progressList = progressRows.map((p) => ({
+        playerId: p.playerId,
+        solved: p.solved === 1,
+        hintsUsed: (() => {
+          try {
+            return JSON.parse(p.hintsUsed || "[]") as string[];
+          } catch {
+            return [];
+          }
+        })(),
+        pointsAwarded: p.pointsAwarded,
+        unlockedByUsername: p.unlockedByUserId
+          ? usernameById.get(p.unlockedByUserId) ?? null
+          : null,
+      }));
+
+      // Ensure every received gift is always reflected as solved in progress
+      const progByPlayerId = new Map(progressList.map((p) => [p.playerId, p]));
+      for (const g of receivedGiftsRows) {
+        const senderName = usernameById.get(g.senderUserId) ?? "Un amico";
+        const ex = progByPlayerId.get(g.playerId);
+        if (!ex) {
+          const item = {
+            playerId: g.playerId,
+            solved: true,
+            hintsUsed: [] as string[],
+            pointsAwarded: 0,
+            unlockedByUsername: senderName,
+          };
+          progressList.push(item);
+          progByPlayerId.set(g.playerId, item);
+        } else if (!ex.solved) {
+          ex.solved = true;
+          ex.unlockedByUsername = senderName;
+        }
+      }
+
       return {
-        progress: progressRows.map((p) => ({
-          playerId: p.playerId,
-          solved: p.solved === 1,
-          hintsUsed: (() => {
-            try {
-              return JSON.parse(p.hintsUsed || "[]") as string[];
-            } catch {
-              return [];
-            }
-          })(),
-          pointsAwarded: p.pointsAwarded,
-          unlockedByUsername: p.unlockedByUserId
-            ? usernameById.get(p.unlockedByUserId) ?? null
-            : null,
-        })),
+        progress: progressList,
         points: pointsRows[0]?.points ?? 0,
         totalEarned: pointsRows[0]?.totalEarned ?? 0,
         achievements: achRows.map((a) => ({
@@ -263,6 +291,12 @@ export const appRouter = router({
         dailyGiftsRemaining: Math.max(0, MAX_DAILY_GIFTS - dailyGiftsUsed),
         totalUsers: Number(usersCountRows[0]?.cnt ?? 1) || 1,
         discoveryCounts,
+        receivedGifts: receivedGiftsRows.map((g) => ({
+          id: g.id,
+          playerId: g.playerId,
+          senderUsername: usernameById.get(g.senderUserId) ?? "Un amico",
+          createdAt: g.createdAt,
+        })),
       };
     }),
 
