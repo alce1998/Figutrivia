@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.figutrivia.app",
+      "sha256_cert_fingerprints": [
+        "A3:38:6E:83:DC:3A:13:1D:DE:3B:87:87:A1:69:4F:A0:9A:17:A5:B2:C9:69:14:3D:3F:25:00:1E:88:08:E4:BC"
+      ]
+    }
+  }
+]
