@@ -177,6 +177,8 @@ export default function App() {
   // Scroll preservation when navigating between grid and detail
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const savedScrollTopByDecade = useRef<Record<string, number>>({});
+  const lastScrollYRef = useRef<number>(0);
+  const [compactMobileFilters, setCompactMobileFilters] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<any>(null);
 
   useEffect(() => {
@@ -505,16 +507,21 @@ export default function App() {
       <Toaster position="top-center" richColors />
 
       {/* Header */}
-      <header className="bg-amber-400 border-b-4 border-black px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-black text-amber-400 border-2 border-black flex items-center justify-center font-display font-black text-xl shadow-[2px_2px_0px_0px_rgba(255,255,255,0.6)]">
+      <header className="bg-amber-400 border-b-2 sm:border-b-4 border-black px-2.5 py-1.5 sm:px-4 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div className="w-7 h-7 sm:w-10 sm:h-10 bg-black text-amber-400 border-2 border-black flex items-center justify-center font-display font-black text-sm sm:text-xl shadow-[2px_2px_0px_0px_rgba(255,255,255,0.6)] flex-shrink-0">
             FT
           </div>
-          <div>
-            <h1 className="font-display font-black uppercase text-xl md:text-2xl tracking-tight text-black leading-none">
-              FiguTrivia
-            </h1>
-            <p className="text-[11px] font-bold uppercase text-black/80 mt-0.5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h1 className="font-display font-black uppercase text-base sm:text-xl md:text-2xl tracking-tight text-black leading-none truncate">
+                FiguTrivia
+              </h1>
+              <span className="sm:hidden bg-black text-amber-400 font-mono font-bold text-[10px] px-1.5 py-0.5 leading-none">
+                {totalSolvedCount}/{totalPlayersCount || "—"}
+              </span>
+            </div>
+            <p className="hidden sm:block text-[11px] font-bold uppercase text-black/80 mt-0.5">
               Serie A +50 presenze dalla 1979/80 ad oggi • {totalSolvedCount}/
               {totalPlayersCount || "—"} sbloccate
             </p>
@@ -522,21 +529,21 @@ export default function App() {
         </div>
 
         {/* Nav Tabs */}
-        <nav className="flex items-center gap-1.5">
+        <nav className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
           <button
             type="button"
             onClick={() => {
               setActiveTab("album");
               setSelectedPlayer(null);
             }}
-            className={`px-3 py-1.5 font-display font-black uppercase text-xs border-2 border-black flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+            className={`px-2 py-1 sm:px-3 sm:py-1.5 font-display font-black uppercase text-[11px] sm:text-xs border-2 border-black flex items-center gap-1 sm:gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
               activeTab === "album"
                 ? "bg-black text-white"
                 : "bg-white text-black hover:bg-amber-100"
             }`}
           >
-            <BookOpen className="w-4 h-4" />
-            Album
+            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Album</span>
           </button>
           <button
             type="button"
@@ -545,14 +552,17 @@ export default function App() {
               setActiveTab("mancoliste");
               setSelectedPlayer(null);
             }}
-            className={`px-3 py-1.5 font-display font-black uppercase text-xs border-2 border-black flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+            className={`px-2 py-1 sm:px-3 sm:py-1.5 font-display font-black uppercase text-[11px] sm:text-xs border-2 border-black flex items-center gap-1 sm:gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
               activeTab === "mancoliste"
                 ? "bg-black text-white"
                 : "bg-white text-black hover:bg-amber-100"
             }`}
           >
-            <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-            Mancoliste ({mancolistaSet.size}/{MAX_MANCOLISTA_SIZE})
+            <Heart className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-500 fill-rose-500" />
+            <span className="hidden sm:inline">Mancoliste</span>
+            <span>
+              ({mancolistaSet.size}/{MAX_MANCOLISTA_SIZE})
+            </span>
           </button>
           <button
             type="button"
@@ -561,19 +571,19 @@ export default function App() {
               setActiveTab("trofei");
               setSelectedPlayer(null);
             }}
-            className={`px-3 py-1.5 font-display font-black uppercase text-xs border-2 border-black flex items-center gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+            className={`px-2 py-1 sm:px-3 sm:py-1.5 font-display font-black uppercase text-[11px] sm:text-xs border-2 border-black flex items-center gap-1 sm:gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
               activeTab === "trofei"
                 ? "bg-black text-white"
                 : "bg-white text-black hover:bg-amber-100"
             }`}
           >
-            <Trophy className="w-4 h-4 text-amber-500" />
-            Trofei
+            <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
+            <span className="hidden xs:inline sm:inline">Trofei</span>
           </button>
         </nav>
 
         {/* User / Points */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
           {installPrompt && (
             <button
               type="button"
@@ -585,7 +595,7 @@ export default function App() {
                 }
               }}
               title="Installa l'App FiguTrivia sul tuo dispositivo"
-              className="px-2.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-black font-display font-black uppercase text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1"
+              className="px-2 py-1 sm:px-2.5 sm:py-1.5 bg-emerald-500 hover:bg-emerald-600 text-black font-display font-black uppercase text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1"
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Installa App</span>
@@ -595,24 +605,26 @@ export default function App() {
             <>
               <div
                 title="Punti Indizio disponibili"
-                className="flex items-center gap-1 bg-white border-2 border-black px-2.5 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                className="flex items-center gap-0.5 sm:gap-1 bg-white border-2 border-black px-1.5 py-0.5 sm:px-2.5 sm:py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               >
-                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                <span className="font-black text-sm">{currentPoints}</span>
-                <span className="text-[10px] font-bold uppercase text-gray-600">
+                <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 fill-amber-500" />
+                <span className="font-black text-xs sm:text-sm">
+                  {currentPoints}
+                </span>
+                <span className="hidden sm:inline text-[10px] font-bold uppercase text-gray-600">
                   pt
                 </span>
               </div>
-              <div className="hidden sm:flex items-center gap-1.5 bg-white border-2 border-black px-2.5 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-black">
+              <div className="hidden md:flex items-center gap-1.5 bg-white border-2 border-black px-2.5 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-xs font-black">
                 <User className="w-3.5 h-3.5" />@{user.username}
               </div>
               <button
                 type="button"
                 onClick={() => logoutMutation.mutate()}
                 title="Esci"
-                className="p-1.5 bg-black text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-800"
+                className="p-1 sm:p-1.5 bg-black text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-gray-800"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </button>
             </>
           ) : (
@@ -620,10 +632,11 @@ export default function App() {
               type="button"
               disabled={loadingUser}
               onClick={() => setAuthModalOpen(true)}
-              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-display font-black uppercase text-xs border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1.5"
+              className="px-2 py-1 sm:px-3 sm:py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-display font-black uppercase text-[11px] sm:text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1"
             >
-              <LogIn className="w-4 h-4" />
-              Accedi / Registrati
+              <LogIn className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Accedi / Registrati</span>
+              <span className="sm:hidden">Accedi</span>
             </button>
           )}
         </div>
@@ -631,15 +644,20 @@ export default function App() {
 
       {/* Banner account obbligatorio per salvare progressi */}
       {!loadingUser && !user && (
-        <div className="bg-rose-600 text-white border-b-4 border-black px-4 py-2 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
-          <p className="text-xs font-bold">
-            Crea un account gratuito per iniziare la collezione, salvare i tuoi
-            album per decennio, sbloccare i trofei e creare la tua Mancolista.
+        <div className="bg-rose-600 text-white border-b-2 sm:border-b-4 border-black px-2.5 py-1 sm:px-4 sm:py-2 flex items-center justify-between gap-2 flex-shrink-0">
+          <p className="text-[11px] sm:text-xs font-bold truncate">
+            <span className="sm:hidden">
+              Crea un account gratuito per salvare album, trofei e Mancolista.
+            </span>
+            <span className="hidden sm:inline">
+              Crea un account gratuito per iniziare la collezione, salvare i tuoi
+              album per decennio, sbloccare i trofei e creare la tua Mancolista.
+            </span>
           </p>
           <button
             type="button"
             onClick={() => setAuthModalOpen(true)}
-            className="px-3 py-1 bg-amber-400 text-black font-black text-xs uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            className="px-2 py-0.5 sm:px-3 sm:py-1 bg-amber-400 text-black font-black text-[10px] sm:text-xs uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0"
           >
             Crea Account
           </button>
@@ -673,15 +691,16 @@ export default function App() {
 
       {activeTab === "album" && !selectedPlayer && (
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Decade Selector + Progress + Filters */}
-          <div className="bg-white border-b-4 border-black px-4 py-3 space-y-2.5 flex-shrink-0">
-            <div className="max-w-7xl mx-auto space-y-2.5">
-              {/* 5 Decade Albums */}
-              <div className="flex flex-wrap gap-2">
+          {/* Decade Selector + Progress + Filters (ultra-compact on mobile) */}
+          <div className="bg-white border-b-2 sm:border-b-4 border-black px-2 py-1.5 sm:px-4 sm:py-3 space-y-1.5 sm:space-y-2.5 flex-shrink-0">
+            <div className="max-w-7xl mx-auto space-y-1.5 sm:space-y-2.5">
+              {/* Row 1: 5 Decade Albums (single horizontal scroll row on mobile) */}
+              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto sm:flex-wrap pb-0.5 sm:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {ALBUM_DECADES.map((d) => {
                   const totalD = totalsByDecade[d.key] || 0;
                   const solvedD = solvedByDecade[d.key] || 0;
                   const active = activeDecade === d.key;
+                  const shortLabel = d.label.replace(/^19|^20/, "");
                   return (
                     <button
                       key={d.key}
@@ -689,16 +708,18 @@ export default function App() {
                       onClick={() => {
                         setActiveDecade(d.key);
                         setSelectedRangeIdx(0);
+                        setCompactMobileFilters(false);
                       }}
-                      className={`px-3 py-1.5 border-2 border-black font-display font-black uppercase text-xs flex items-center gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                      className={`px-2 py-1 sm:px-3 sm:py-1.5 border-2 border-black font-display font-black uppercase text-[11px] sm:text-xs flex items-center gap-1.5 sm:gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex-shrink-0 ${
                         active
                           ? "bg-black text-white"
                           : "bg-gray-100 text-black hover:bg-amber-100"
                       }`}
                     >
-                      <span>Album {d.label}</span>
+                      <span className="hidden sm:inline">Album {d.label}</span>
+                      <span className="sm:hidden">{shortLabel}</span>
                       <span
-                        className={`px-1.5 py-0.5 text-[10px] rounded-full font-bold ${
+                        className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold leading-tight ${
                           active
                             ? "bg-amber-400 text-black"
                             : "bg-white text-black border border-black"
@@ -711,8 +732,8 @@ export default function App() {
                 })}
               </div>
 
-              {/* Progress Bar active decade */}
-              <div>
+              {/* Desktop full progress bar; Mobile thin 4px progress bar */}
+              <div className="hidden sm:block">
                 <div className="flex items-center justify-between text-xs font-bold uppercase mb-1">
                   <span>
                     Album{" "}
@@ -750,31 +771,63 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Ranges & Status filter */}
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap gap-1">
-                  {ranges.map((r, idx) => (
-                    <button
-                      key={r.label}
-                      type="button"
-                      onClick={() => {
-                        savedScrollTopByDecade.current[activeDecade] = 0;
-                        if (gridContainerRef.current)
-                          gridContainerRef.current.scrollTop = 0;
-                        setSelectedRangeIdx(idx);
-                      }}
-                      className={`px-2 py-0.5 text-[11px] font-bold uppercase border-2 border-black ${
-                        selectedRangeIdx === idx
-                          ? "bg-black text-white"
-                          : "bg-gray-100 text-black hover:bg-amber-100"
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
+              {/* Row 2: Ranges & Status filter (single compact row on mobile, auto-hides when scrolling down on mobile) */}
+              <div
+                className={`items-center justify-between gap-1.5 sm:gap-2 ${
+                  compactMobileFilters ? "hidden sm:flex" : "flex"
+                } sm:flex-wrap`}
+              >
+                <div className="flex items-center gap-1 overflow-x-auto sm:flex-wrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden min-w-0">
+                  {ranges.map((r, idx) => {
+                    const isSecComplete =
+                      r.label !== "Tutte" &&
+                      decadePlayers.length > 0 &&
+                      decadePlayers
+                        .filter((p) => p.numero >= r.min && p.numero <= r.max)
+                        .every((p) => solvedSet.has(p.player_id));
+                    return (
+                      <button
+                        key={r.label}
+                        type="button"
+                        onClick={() => {
+                          savedScrollTopByDecade.current[activeDecade] = 0;
+                          if (gridContainerRef.current)
+                            gridContainerRef.current.scrollTop = 0;
+                          setSelectedRangeIdx(idx);
+                        }}
+                        className={`px-2 py-0.5 text-[10px] sm:text-[11px] font-bold uppercase border-2 border-black flex items-center gap-1 flex-shrink-0 ${
+                          selectedRangeIdx === idx
+                            ? "bg-black text-white"
+                            : "bg-gray-100 text-black hover:bg-amber-100"
+                        }`}
+                      >
+                        <span>{r.label}</span>
+                        {isSecComplete && <span title="Sezione completata">🏆</span>}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div className="flex flex-wrap gap-1">
+                {/* Mobile compact status dropdown */}
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    savedScrollTopByDecade.current[activeDecade] = 0;
+                    if (gridContainerRef.current)
+                      gridContainerRef.current.scrollTop = 0;
+                    setStatusFilter(e.target.value as StatusFilter);
+                  }}
+                  aria-label="Filtra stato figurine"
+                  className="sm:hidden px-1.5 py-0.5 text-[10px] font-black uppercase border-2 border-black bg-amber-400 text-black flex-shrink-0"
+                >
+                  <option value="all">Tutte</option>
+                  <option value="unsolved">Da trovare</option>
+                  <option value="solved">Indovinate</option>
+                  <option value="mancolista">❤️ Manco</option>
+                </select>
+
+                {/* Desktop status filter buttons */}
+                <div className="hidden sm:flex flex-wrap gap-1">
                   {(
                     [
                       { key: "all", label: "Tutte" },
@@ -810,14 +863,21 @@ export default function App() {
           <div
             ref={gridContainerRef}
             onScroll={(e) => {
-              savedScrollTopByDecade.current[activeDecade] =
-                e.currentTarget.scrollTop;
+              const top = e.currentTarget.scrollTop;
+              savedScrollTopByDecade.current[activeDecade] = top;
+              const delta = top - lastScrollYRef.current;
+              lastScrollYRef.current = top;
+              if (top > 70 && delta > 8 && !compactMobileFilters) {
+                setCompactMobileFilters(true);
+              } else if ((top <= 25 || delta < -12) && compactMobileFilters) {
+                setCompactMobileFilters(false);
+              }
             }}
-            className="flex-1 overflow-y-auto p-4 bg-gray-50"
+            className="flex-1 overflow-y-auto p-2 sm:p-4 bg-gray-50"
           >
             <div className="max-w-7xl mx-auto">
               {loadingPlayers ? (
-                <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3">
                   {Array.from({ length: 24 }).map((_, i) => (
                     <div
                       key={i}
@@ -830,7 +890,7 @@ export default function App() {
                   Nessuna figurina corrisponde a questo filtro.
                 </div>
               ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2 sm:gap-3">
                   {filteredPlayers.map((p) => (
                     <FigurinaThumb
                       key={p.player_id}
