@@ -165,6 +165,25 @@ function getPointsForAppearances(apps) {
   if (apps >= 100) return 4;
   return 5;
 }
+var ALBUM_SECTION_SIZE = 150;
+function getAlbumSections(decade, totalInDecade) {
+  const out = [];
+  if (totalInDecade <= 0) return out;
+  let idx = 1;
+  for (let start = 1; start <= totalInDecade; start += ALBUM_SECTION_SIZE) {
+    const end = Math.min(totalInDecade, start + ALBUM_SECTION_SIZE - 1);
+    out.push({
+      index: idx,
+      id: `album_${decade}_sec_${idx}`,
+      label: `${start}\u2013${end}`,
+      min: start,
+      max: end,
+      count: end - start + 1
+    });
+    idx++;
+  }
+  return out;
+}
 var TROPHIES = [
   {
     id: "found_100",
@@ -191,25 +210,17 @@ var TROPHIES = [
     icon: "\u{1F947}"
   },
   {
-    id: "found_5000",
-    title: "Archivio Vivente",
-    description: "Trova 5.000 giocatori negli album FiguTrivia",
-    category: "milestone",
-    threshold: 5e3,
-    icon: "\u{1F48E}"
-  },
-  {
-    id: "found_10000",
+    id: "found_all",
     title: "Leggenda Assoluta",
-    description: "Trova 10.000 giocatori negli album FiguTrivia",
+    description: "Trova tutti i giocatori presenti sul sito",
     category: "milestone",
-    threshold: 1e4,
+    isAllPlayers: true,
     icon: "\u{1F451}"
   },
   ...ALBUM_DECADES.map((d) => ({
     id: `album_${d.key}`,
     title: `Album ${d.label} Completo`,
-    description: `Sblocca tutte le figurine dell'album ${d.label}`,
+    description: `Completa tutte le sezioni dell'album ${d.label} per comporre il trofeo`,
     category: "album",
     decade: d.key,
     icon: "\u{1F3C6}"
@@ -297,6 +308,10 @@ function ensureLoaded() {
     cachedById.set(p.player_id, p);
     cachedCountsByDecade[p.album_decade] = (cachedCountsByDecade[p.album_decade] || 0) + 1;
   }
+}
+function getAllPlayers() {
+  ensureLoaded();
+  return cachedPlayers;
 }
 function getPlayerById(playerId) {
   ensureLoaded();
@@ -555,19 +570,41 @@ async function evaluateAndUnlockTrophies(db, userId) {
     "2010-19": 0,
     "2020-oggi": 0
   };
+  const solvedPlayersByDecade = {
+    "1980-89": [],
+    "1990-99": [],
+    "2000-09": [],
+    "2010-19": [],
+    "2020-oggi": []
+  };
   for (const pid of Array.from(solvedSet)) {
     const player = getPlayerById(pid);
     if (player) {
       solvedByDecade[player.album_decade]++;
+      solvedPlayersByDecade[player.album_decade].push(player.numero);
     }
   }
+  const allPlayersCount = getAllPlayers().length;
   const decadeTotals = getCountsByDecade();
   const eligibleIds = [];
   for (const t2 of TROPHIES) {
-    if (t2.category === "milestone" && t2.threshold !== void 0) {
-      if (totalSolved >= t2.threshold) eligibleIds.push(t2.id);
+    if (t2.category === "milestone") {
+      const target = t2.isAllPlayers ? allPlayersCount : t2.threshold;
+      if (target !== void 0 && target > 0 && totalSolved >= target) {
+        eligibleIds.push(t2.id);
+      }
     } else if (t2.category === "album" && t2.decade) {
       const target = decadeTotals[t2.decade] || 0;
+      const sections = getAlbumSections(t2.decade, target);
+      const solvedNums = solvedPlayersByDecade[t2.decade] || [];
+      for (const sec of sections) {
+        const solvedInSec = solvedNums.filter(
+          (n) => n >= sec.min && n <= sec.max
+        ).length;
+        if (sec.count > 0 && solvedInSec >= sec.count) {
+          eligibleIds.push(sec.id);
+        }
+      }
       if (target > 0 && solvedByDecade[t2.decade] >= target) {
         eligibleIds.push(t2.id);
       }

@@ -18,11 +18,12 @@ import {
   MAX_DAILY_GIFTS,
   MAX_MANCOLISTA_SIZE,
   TROPHIES,
+  getAlbumSections,
   getPointsForAppearances,
   matchesPlayerName,
   type AlbumDecadeKey,
 } from "../shared/figutrivia";
-import { getCountsByDecade, getPlayerById } from "./dataLoader";
+import { getAllPlayers, getCountsByDecade, getPlayerById } from "./dataLoader";
 import { getDb } from "./db";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { ENV } from "./_core/env";
@@ -61,21 +62,43 @@ async function evaluateAndUnlockTrophies(
     "2010-19": 0,
     "2020-oggi": 0,
   };
+  const solvedPlayersByDecade: Record<AlbumDecadeKey, number[]> = {
+    "1980-89": [],
+    "1990-99": [],
+    "2000-09": [],
+    "2010-19": [],
+    "2020-oggi": [],
+  };
   for (const pid of Array.from(solvedSet)) {
     const player = getPlayerById(pid);
     if (player) {
       solvedByDecade[player.album_decade]++;
+      solvedPlayersByDecade[player.album_decade].push(player.numero);
     }
   }
 
+  const allPlayersCount = getAllPlayers().length;
   const decadeTotals = getCountsByDecade();
   const eligibleIds: string[] = [];
 
   for (const t of TROPHIES) {
-    if (t.category === "milestone" && t.threshold !== undefined) {
-      if (totalSolved >= t.threshold) eligibleIds.push(t.id);
+    if (t.category === "milestone") {
+      const target = t.isAllPlayers ? allPlayersCount : t.threshold;
+      if (target !== undefined && target > 0 && totalSolved >= target) {
+        eligibleIds.push(t.id);
+      }
     } else if (t.category === "album" && t.decade) {
       const target = decadeTotals[t.decade] || 0;
+      const sections = getAlbumSections(t.decade, target);
+      const solvedNums = solvedPlayersByDecade[t.decade] || [];
+      for (const sec of sections) {
+        const solvedInSec = solvedNums.filter(
+          (n) => n >= sec.min && n <= sec.max
+        ).length;
+        if (sec.count > 0 && solvedInSec >= sec.count) {
+          eligibleIds.push(sec.id);
+        }
+      }
       if (target > 0 && solvedByDecade[t.decade] >= target) {
         eligibleIds.push(t.id);
       }

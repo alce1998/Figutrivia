@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { getAllPlayers, getCountsByDecade } from "./dataLoader";
 import {
   ALBUM_DECADES,
+  TROPHIES,
+  getAlbumSections,
   getPointsForAppearances,
   getSurnameInitials,
   matchesPlayerName,
@@ -51,6 +53,7 @@ describe("FiguTrivia 1979/80-oggi dataset integrity", () => {
         expect(cur.serie_a_apps).toBeGreaterThan(50);
         expect(cur.numero).toBe(i + 1);
         expect(cur.birth_year).not.toBeNull();
+        expect(cur.photo_url.length).toBeGreaterThan(0);
         expect([
           "Portiere",
           "Difensore",
@@ -64,5 +67,22 @@ describe("FiguTrivia 1979/80-oggi dataset integrity", () => {
         }
       }
     }
+    const milestones = TROPHIES.filter((t) => t.category === "milestone");
+    expect(milestones.map((m) => m.id)).toEqual([
+      "found_100",
+      "found_500",
+      "found_1000",
+      "found_all",
+    ]);
+    const secs2020 = getAlbumSections("2020-oggi", counts["2020-oggi"]);
+    expect(secs2020.length).toBe(4);
+    expect(secs2020[0]).toMatchObject({
+      index: 1,
+      id: "album_2020-oggi_sec_1",
+      label: "1–150",
+      min: 1,
+      max: 150,
+      count: 150,
+    });
   });
 });

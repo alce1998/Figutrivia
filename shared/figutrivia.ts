@@ -86,12 +86,46 @@ export function getPointsForAppearances(apps: number): number {
   return 5;
 }
 
+export const ALBUM_SECTION_SIZE = 150;
+
+export interface AlbumSectionInfo {
+  index: number;
+  id: string;
+  label: string;
+  min: number;
+  max: number;
+  count: number;
+}
+
+export function getAlbumSections(
+  decade: AlbumDecadeKey,
+  totalInDecade: number
+): AlbumSectionInfo[] {
+  const out: AlbumSectionInfo[] = [];
+  if (totalInDecade <= 0) return out;
+  let idx = 1;
+  for (let start = 1; start <= totalInDecade; start += ALBUM_SECTION_SIZE) {
+    const end = Math.min(totalInDecade, start + ALBUM_SECTION_SIZE - 1);
+    out.push({
+      index: idx,
+      id: `album_${decade}_sec_${idx}`,
+      label: `${start}–${end}`,
+      min: start,
+      max: end,
+      count: end - start + 1,
+    });
+    idx++;
+  }
+  return out;
+}
+
 export interface TrophyDefinition {
   id: string;
   title: string;
   description: string;
   category: "milestone" | "album";
   threshold?: number;
+  isAllPlayers?: boolean;
   decade?: AlbumDecadeKey;
   icon: string;
 }
@@ -122,25 +156,17 @@ export const TROPHIES: TrophyDefinition[] = [
     icon: "🥇",
   },
   {
-    id: "found_5000",
-    title: "Archivio Vivente",
-    description: "Trova 5.000 giocatori negli album FiguTrivia",
-    category: "milestone",
-    threshold: 5000,
-    icon: "💎",
-  },
-  {
-    id: "found_10000",
+    id: "found_all",
     title: "Leggenda Assoluta",
-    description: "Trova 10.000 giocatori negli album FiguTrivia",
+    description: "Trova tutti i giocatori presenti sul sito",
     category: "milestone",
-    threshold: 10000,
+    isAllPlayers: true,
     icon: "👑",
   },
   ...ALBUM_DECADES.map((d) => ({
     id: `album_${d.key}`,
     title: `Album ${d.label} Completo`,
-    description: `Sblocca tutte le figurine dell'album ${d.label}`,
+    description: `Completa tutte le sezioni dell'album ${d.label} per comporre il trofeo`,
     category: "album" as const,
     decade: d.key,
     icon: "🏆",

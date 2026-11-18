@@ -27,6 +27,7 @@ import {
   HINT_COSTS,
   MAX_MANCOLISTA_SIZE,
   TROPHIES,
+  getAlbumSections,
   getPointsForAppearances,
   getSurnameInitials,
   normalizePlayerStr,
@@ -444,6 +445,22 @@ export default function App() {
             toast.success(`${t.icon} Trofeo sbloccato: ${t.title}!`, {
               duration: 5000,
             });
+          } else if (tid.startsWith("album_") && tid.includes("_sec_")) {
+            const m = tid.match(/^album_(.+)_sec_(\d+)$/);
+            if (m) {
+              const decKey = m[1] as AlbumDecadeKey;
+              const secIdx = Number(m[2]);
+              const decInfo = ALBUM_DECADES.find((d) => d.key === decKey);
+              const secs = getAlbumSections(
+                decKey,
+                totalsByDecade[decKey] || 0
+              );
+              const secInfo = secs.find((s) => s.index === secIdx);
+              toast.success(
+                `🧩 Parte ${secIdx}/${secs.length} del Trofeo Album ${decInfo?.label ?? decKey} sbloccata (Sez. ${secInfo?.label ?? secIdx})!`,
+                { duration: 5500 }
+              );
+            }
           }
         }
       }
@@ -644,6 +661,8 @@ export default function App() {
       {activeTab === "trofei" && (
         <div className="flex-1 overflow-y-auto p-4 md:p-6 max-w-6xl w-full mx-auto">
           <TrophiesView
+            players={players}
+            solvedSet={solvedSet}
             totalSolved={totalSolvedCount}
             solvedByDecade={solvedByDecade}
             totalsByDecade={totalsByDecade}

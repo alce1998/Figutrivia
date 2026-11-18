@@ -31,7 +31,7 @@ function normalizeFinalPosition(pos) {
 }
 
 function isValidImageBuffer(buf) {
-  if (!buf || buf.length < 1500) return false;
+  if (!buf || buf.length < 400) return false;
   // JPEG FF D8 FF
   if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return true;
   // PNG 89 50 4E 47
@@ -172,6 +172,137 @@ const OVERRIDES = {
       "https://upload.wikimedia.org/wikipedia/commons/9/90/Ernesto_Galli_al_Brescia.jpg",
     photo_kind: "itwiki",
   },
+  // 26 missing photos (1980-89, 1990-99, 2000-09) downloaded locally for CORS-safe Canvas rendering
+  "227679": {
+    photo_source:
+      "https://www.carrierecalciatori.it/data/public/image/mozzini%20roberto.jpg",
+    photo_kind: "tm",
+  },
+  "227392": {
+    photo_source:
+      "https://www.carrierecalciatori.it/data/public/image/imgres_147.jpg",
+    photo_kind: "tm",
+  },
+  "226435": {
+    photo_source:
+      "https://www.carrierecalciatori.it/data/public/image/a_2.jpg",
+    photo_kind: "tm",
+  },
+  "336552": {
+    photo_source:
+      "https://www.carrierecalciatori.it/data/public/image/salvioni.jpg",
+    photo_kind: "tm",
+  },
+  "6753": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/sacchetti_ste.jpg",
+    photo_kind: "tm",
+  },
+  "227673": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/2367MANIGHETTI.jpg",
+    photo_kind: "tm",
+  },
+  "22200": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/lamacchi%20gianluca.jpg",
+    photo_kind: "tm",
+  },
+  "226405": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/bianchinidavid.jpg",
+    photo_kind: "tm",
+  },
+  "223334": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/bellucci%20francesco.jpg",
+    photo_kind: "tm",
+  },
+  "222792": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/marangonnicola.jpg",
+    photo_kind: "tm",
+  },
+  "228242": {
+    photo_source:
+      "https://www.carrierecalciatori.it/data/public/image/ricci%20gianluca.jpg",
+    photo_kind: "tm",
+  },
+  "6063": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/falsini.jpg",
+    photo_kind: "tm",
+  },
+  "6037": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/balestri_jac.jpg",
+    photo_kind: "tm",
+  },
+  "5932": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/24-FEDERICO-COSSATO(1).jpg",
+    photo_kind: "tm",
+  },
+  "20739": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/langellalutunt.jpg",
+    photo_kind: "tm",
+  },
+  "16747": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/balli%20daniele.jpg",
+    photo_kind: "tm",
+  },
+  "5919": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/lazeticnikola.jpg",
+    photo_kind: "tm",
+  },
+  "6064": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/morabito.jpg",
+    photo_kind: "tm",
+  },
+  "192805": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/giorgettirodolfo.jpg",
+    photo_kind: "tm",
+  },
+  "21788": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/edusei_mar.jpg",
+    photo_kind: "tm",
+  },
+  "22189": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/brevi%20ezio.jpg",
+    photo_kind: "tm",
+  },
+  "20725": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/abeijon%20123.jpg",
+    photo_kind: "tm",
+  },
+  "21147": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/devezze.jpg",
+    photo_kind: "tm",
+  },
+  "19441": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/gonnella.jpg",
+    photo_kind: "tm",
+  },
+  "20729": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/capone%20andrea%20123.jpg",
+    photo_kind: "tm",
+  },
+  "21190": {
+    photo_source:
+      "https://www.tuttocalciatori.net/fotocalciatori/vanigli.jpg",
+    photo_kind: "tm",
+  },
 };
 
 async function runPool(items, concurrency, fn) {
@@ -201,9 +332,13 @@ async function main() {
     }
   }
 
-  // Download all Transfermarkt portraits locally
+  // Download all Transfermarkt / TuttoCalciatori / CarriereCalciatori portraits locally
   const tmPlayers = enriched.filter(
-    (p) => p.photo_source && p.photo_source.includes("transfermarkt.technology")
+    (p) =>
+      p.photo_source &&
+      (p.photo_source.includes("transfermarkt.technology") ||
+        p.photo_source.includes("tuttocalciatori.net") ||
+        p.photo_source.includes("carrierecalciatori.it"))
   );
   console.log(`Downloading ${tmPlayers.length} Transfermarkt portraits locally...`);
   let okCount = 0;
