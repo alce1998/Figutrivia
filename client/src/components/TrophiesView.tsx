@@ -149,18 +149,17 @@ export function TrophiesView({
 
   return (
     <div className="space-y-6">
-      {/* Punteggi per fascia presenze */}
+      {/* Punteggi per sezione album */}
       <div className="bg-amber-50 border-4 border-black p-4 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
         <h3 className="font-display font-black uppercase text-sm mb-2">
-          Sistema Punteggio Punti Indizio per Presenze in Serie A
+          Sistema Punteggio Punti Indizio per Sezione dell'Album
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
           {[
-            { range: "+400 presenze", pts: "1 pt" },
-            { range: "300–399 presenze", pts: "2 pt" },
-            { range: "200–299 presenze", pts: "3 pt" },
-            { range: "100–199 presenze", pts: "4 pt" },
-            { range: "51–99 presenze", pts: "5 pt" },
+            { range: "1ª Sezione (1–150)", pts: "1 pt" },
+            { range: "2ª Sezione (151–300)", pts: "2 pt" },
+            { range: "3ª Sezione (301–450)", pts: "3 pt" },
+            { range: "4ª Sezione (451+)", pts: "4 pt" },
           ].map((row) => (
             <div
               key={row.range}

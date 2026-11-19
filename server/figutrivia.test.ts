@@ -4,23 +4,21 @@ import {
   ALBUM_DECADES,
   TROPHIES,
   getAlbumSections,
-  getPointsForAppearances,
+  getPointsForSection,
   getSurnameInitials,
   matchesPlayerName,
 } from "../shared/figutrivia";
 
 describe("FiguTrivia scoring & name matching", () => {
-  it("computes hint points by Serie A appearances", () => {
-    expect(getPointsForAppearances(657)).toBe(1);
-    expect(getPointsForAppearances(400)).toBe(1);
-    expect(getPointsForAppearances(399)).toBe(2);
-    expect(getPointsForAppearances(300)).toBe(2);
-    expect(getPointsForAppearances(250)).toBe(3);
-    expect(getPointsForAppearances(200)).toBe(3);
-    expect(getPointsForAppearances(150)).toBe(4);
-    expect(getPointsForAppearances(100)).toBe(4);
-    expect(getPointsForAppearances(99)).toBe(5);
-    expect(getPointsForAppearances(51)).toBe(5);
+  it("computes hint points by album section (1..4)", () => {
+    expect(getPointsForSection(1)).toBe(1);
+    expect(getPointsForSection(150)).toBe(1);
+    expect(getPointsForSection(151)).toBe(2);
+    expect(getPointsForSection(300)).toBe(2);
+    expect(getPointsForSection(301)).toBe(3);
+    expect(getPointsForSection(450)).toBe(3);
+    expect(getPointsForSection(451)).toBe(4);
+    expect(getPointsForSection(561)).toBe(4);
   });
 
   it("matches full names and surnames ignoring accents", () => {

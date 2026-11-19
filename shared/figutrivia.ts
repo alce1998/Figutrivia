@@ -71,19 +71,21 @@ export const MAX_MANCOLISTA_SIZE = 50;
 export const MAX_DAILY_GIFTS = 5;
 
 /**
- * Calcola i punti indizio guadagnati indovinando un giocatore in base alle presenze in Serie A:
- * - >= 400 presenze: 1 pt
- * - 300..399 presenze: 2 pt
- * - 200..299 presenze: 3 pt
- * - 100..199 presenze: 4 pt
- * - 51..99 presenze (+50): 5 pt
+ * Calcola i punti indizio guadagnati indovinando un giocatore in base alla sezione dell'album:
+ * - 1ª sezione (1..150): 1 pt
+ * - 2ª sezione (151..300): 2 pt
+ * - 3ª sezione (301..450): 3 pt
+ * - 4ª sezione (451+): 4 pt
  */
-export function getPointsForAppearances(apps: number): number {
-  if (apps >= 400) return 1;
-  if (apps >= 300) return 2;
-  if (apps >= 200) return 3;
-  if (apps >= 100) return 4;
-  return 5;
+export function getPointsForSection(numero: number): number {
+  if (numero <= 150) return 1;
+  if (numero <= 300) return 2;
+  if (numero <= 450) return 3;
+  return 4;
+}
+
+export function getPointsForAppearances(numero: number): number {
+  return getPointsForSection(numero);
 }
 
 export const ALBUM_SECTION_SIZE = 150;

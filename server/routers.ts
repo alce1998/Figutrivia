@@ -19,7 +19,7 @@ import {
   MAX_MANCOLISTA_SIZE,
   TROPHIES,
   getAlbumSections,
-  getPointsForAppearances,
+  getPointsForSection,
   matchesPlayerName,
   type AlbumDecadeKey,
 } from "../shared/figutrivia";
@@ -364,7 +364,7 @@ export const appRouter = router({
           };
         }
 
-        const awarded = getPointsForAppearances(player.serie_a_apps);
+        const awarded = getPointsForSection(player.numero);
 
         if (existing.length > 0) {
           await db

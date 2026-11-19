@@ -158,12 +158,11 @@ var HINT_COSTS = {
 };
 var MAX_MANCOLISTA_SIZE = 50;
 var MAX_DAILY_GIFTS = 5;
-function getPointsForAppearances(apps) {
-  if (apps >= 400) return 1;
-  if (apps >= 300) return 2;
-  if (apps >= 200) return 3;
-  if (apps >= 100) return 4;
-  return 5;
+function getPointsForSection(numero) {
+  if (numero <= 150) return 1;
+  if (numero <= 300) return 2;
+  if (numero <= 450) return 3;
+  return 4;
 }
 var ALBUM_SECTION_SIZE = 150;
 function getAlbumSections(decade, totalInDecade) {
@@ -800,7 +799,7 @@ var appRouter = router({
           discoveryStats: discoveryStats2
         };
       }
-      const awarded = getPointsForAppearances(player.serie_a_apps);
+      const awarded = getPointsForSection(player.numero);
       if (existing.length > 0) {
         await db.update(figutriviaProgress).set({
           solved: 1,

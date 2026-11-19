@@ -28,7 +28,7 @@ import {
   MAX_MANCOLISTA_SIZE,
   TROPHIES,
   getAlbumSections,
-  getPointsForAppearances,
+  getPointsForSection,
   getSurnameInitials,
   normalizePlayerStr,
   type AlbumDecadeKey,
@@ -37,7 +37,10 @@ import {
 } from "@shared/figutrivia";
 import { AuthModal } from "@/components/AuthModal";
 import { ErrorReportModal } from "@/components/ErrorReportModal";
-import { FigurinaSolvedOverlay } from "@/components/FigurineCard";
+import {
+  FigurinaSolvedOverlay,
+  getFirstFlag,
+} from "@/components/FigurineCard";
 import {
   GiftRevealModal,
   type ReceivedGiftItem,
@@ -958,26 +961,19 @@ export default function App() {
 
       {/* Player Detail View */}
       {activeTab === "album" && selectedPlayer && (
-        <div className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6">
-          <div className="max-w-2xl mx-auto space-y-5">
-            {/* Top Navigation Bar inside Detail */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex-1 overflow-y-auto bg-gray-50 p-2 sm:p-4 md:p-6">
+          <div className="max-w-xl mx-auto space-y-2 sm:space-y-4">
+            {/* Top Navigation Bar inside Detail: [<-]   [ <- | #numero | -> ]   [ ] */}
+            <div className="flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={handleBackToAlbum}
-                className="flex items-center gap-1 bg-white hover:bg-gray-100 text-black font-bold text-xs uppercase px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                title="Torna all'album"
+                aria-label="Torna all'album"
+                className="p-1.5 bg-white hover:bg-gray-100 text-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               >
                 <ChevronLeft className="w-4 h-4" />
-                Album
               </button>
-
-              <span className="font-display font-black text-xs sm:text-sm uppercase bg-amber-400 px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                Album{" "}
-                {ALBUM_DECADES.find(
-                  (d) => d.key === selectedPlayer.album_decade
-                )?.label ?? selectedPlayer.album_decade}{" "}
-                • Figurina #{selectedPlayer.numero} di {decadePlayers.length}
-              </span>
 
               <div className="flex items-center gap-1.5">
                 <button
@@ -987,10 +983,17 @@ export default function App() {
                     currentIdxInDecade > 0 &&
                     setSelectedPlayer(decadePlayers[currentIdxInDecade - 1])
                   }
-                  className="px-2.5 py-1 bg-white border-2 border-black font-bold text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40"
+                  title="Figurina precedente"
+                  aria-label="Figurina precedente"
+                  className="p-1.5 bg-white hover:bg-gray-100 border-2 border-black font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40"
                 >
-                  ← #{selectedPlayer.numero - 1}
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
+
+                <span className="font-display font-black text-xs sm:text-sm uppercase bg-amber-400 px-3 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] min-w-[64px] text-center">
+                  #{selectedPlayer.numero}
+                </span>
+
                 <button
                   type="button"
                   disabled={
@@ -1001,18 +1004,22 @@ export default function App() {
                     currentIdxInDecade < decadePlayers.length - 1 &&
                     setSelectedPlayer(decadePlayers[currentIdxInDecade + 1])
                   }
-                  className="px-2.5 py-1 bg-white border-2 border-black font-bold text-xs uppercase shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40"
+                  title="Figurina successiva"
+                  aria-label="Figurina successiva"
+                  className="p-1.5 bg-white hover:bg-gray-100 border-2 border-black font-bold text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-40"
                 >
-                  #{selectedPlayer.numero + 1} →
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
+
+              <div className="w-8" />
             </div>
 
-            {/* Enlarged Sticker */}
+            {/* Enlarged Sticker (compact on mobile so everything fits on 1 screen) */}
             <div
               onContextMenu={(e) => e.preventDefault()}
               onDragStart={(e) => e.preventDefault()}
-              className="relative max-w-xs mx-auto aspect-[3/4] border-4 border-black bg-white select-none shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
+              className="relative w-36 sm:w-56 mx-auto aspect-[3/4] border-3 sm:border-4 border-black bg-white select-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
             >
               <ProtectedImage
                 src={selectedPlayer.photo_url}
@@ -1030,28 +1037,35 @@ export default function App() {
               )}
             </div>
 
-            {/* Action buttons: Heart Mancolista + Segnala Errore */}
-            <div className="flex flex-wrap items-center justify-center gap-2.5">
+            {/* Action buttons: ❤️ (count/50) + ⚠️ icon */}
+            <div className="flex items-center justify-center gap-2">
               {!isSelectedSolved && (
                 <button
                   type="button"
                   onClick={() =>
                     handleToggleMancolista(selectedPlayer.player_id)
                   }
-                  className={`px-3.5 py-2 border-2 border-black font-bold text-xs uppercase flex items-center gap-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
+                  title={
+                    selectedInMancolista
+                      ? "Rimuovi dalla Mancolista"
+                      : "Aggiungi alla Mancolista"
+                  }
+                  className={`px-2.5 py-1 border-2 border-black font-bold text-xs flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
                     selectedInMancolista
                       ? "bg-rose-600 text-white"
                       : "bg-white hover:bg-rose-50 text-black"
                   }`}
                 >
                   <Heart
-                    className={`w-4 h-4 ${
-                      selectedInMancolista ? "fill-white" : "text-rose-600"
+                    className={`w-3.5 h-3.5 ${
+                      selectedInMancolista
+                        ? "fill-white text-white"
+                        : "fill-rose-600 text-rose-600"
                     }`}
                   />
-                  {selectedInMancolista
-                    ? `Nella Mancolista (${mancolistaSet.size}/${MAX_MANCOLISTA_SIZE})`
-                    : `Aggiungi a Mancolista (${mancolistaSet.size}/${MAX_MANCOLISTA_SIZE})`}
+                  <span>
+                    ({mancolistaSet.size}/{MAX_MANCOLISTA_SIZE})
+                  </span>
                 </button>
               )}
 
@@ -1061,41 +1075,41 @@ export default function App() {
                   if (!requireAuth()) return;
                   setReportPlayer(selectedPlayer);
                 }}
-                className="px-3.5 py-2 bg-white hover:bg-amber-50 border-2 border-black font-bold text-xs uppercase flex items-center gap-1.5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                title="Segnala errore"
+                aria-label="Segnala errore"
+                className="p-1.5 bg-white hover:bg-amber-50 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               >
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-                Segnala errore
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
               </button>
             </div>
 
             {/* Solved Card Info + Global Discovery % */}
             {isSelectedSolved && (
-              <div className="bg-emerald-50 border-4 border-emerald-600 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-4 space-y-4">
+              <div className="bg-emerald-50 border-3 sm:border-4 border-emerald-600 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-3 sm:p-4 space-y-2.5 sm:space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-xl font-display font-black uppercase text-emerald-900 flex items-center gap-2">
-                    <Trophy className="w-5 h-5" />
+                  <h3 className="text-base sm:text-xl font-display font-black uppercase text-emerald-900 flex items-center gap-1.5">
+                    <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
                     {selectedPlayer.name}
                   </h3>
-                  <span className="bg-amber-400 border-2 border-black px-2.5 py-0.5 text-xs font-black uppercase">
-                    +{getPointsForAppearances(selectedPlayer.serie_a_apps)} pt
-                    indizio
+                  <span className="bg-amber-400 border-2 border-black px-2 py-0.5 text-[11px] font-black uppercase">
+                    +{getPointsForSection(selectedPlayer.numero)} pt indizio
                   </span>
                 </div>
 
                 {selectedProgress?.unlockedByUsername && (
-                  <div className="bg-white border-2 border-black px-3 py-1.5 text-xs font-bold text-rose-700">
+                  <div className="bg-white border-2 border-black px-2.5 py-1 text-xs font-bold text-rose-700">
                     🎁 Figurina regalata da @{selectedProgress.unlockedByUsername}{" "}
                     tramite la tua Mancolista!
                   </div>
                 )}
 
                 {selectedDiscoveryStats && (
-                  <div className="bg-white border-2 border-black px-3 py-2 flex items-center justify-between gap-2">
-                    <span className="text-xs font-bold uppercase flex items-center gap-1.5 text-gray-800">
-                      <Globe className="w-4 h-4 text-sky-600" />
-                      Trovato dai giocatori di FiguTrivia:
+                  <div className="bg-white border-2 border-black px-2.5 py-1.5 flex items-center justify-between gap-2">
+                    <span className="text-[11px] sm:text-xs font-bold uppercase flex items-center gap-1.5 text-gray-800">
+                      <Globe className="w-3.5 h-3.5 text-sky-600" />
+                      Trovato dai giocatori:
                     </span>
-                    <span className="font-display font-black text-base text-sky-700">
+                    <span className="font-display font-black text-sm sm:text-base text-sky-700">
                       {selectedDiscoveryStats.pct}% (
                       {selectedDiscoveryStats.solvers}/
                       {selectedDiscoveryStats.totalUsers})
@@ -1103,214 +1117,161 @@ export default function App() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  <div className="bg-white border-2 border-black p-2.5">
-                    <div className="text-[10px] font-bold uppercase text-gray-500">
-                      Presenze Serie A (carriera)
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="bg-white border-2 border-black p-2">
+                    <div className="text-[9px] font-bold uppercase text-gray-500">
+                      Presenze Serie A
                     </div>
-                    <div className="font-black text-base">
+                    <div className="font-black text-sm sm:text-base">
                       {selectedPlayer.serie_a_apps}
                     </div>
                   </div>
-                  <div className="bg-white border-2 border-black p-2.5">
-                    <div className="text-[10px] font-bold uppercase text-gray-500">
+                  <div className="bg-white border-2 border-black p-2">
+                    <div className="text-[9px] font-bold uppercase text-gray-500">
                       Anno di Nascita
                     </div>
-                    <div className="font-black text-base">
+                    <div className="font-black text-sm sm:text-base">
                       {selectedPlayer.birth_year ?? "N/D"}
                     </div>
                   </div>
-                  <div className="bg-white border-2 border-black p-2.5">
-                    <div className="text-[10px] font-bold uppercase text-gray-500">
+                  <div className="bg-white border-2 border-black p-2">
+                    <div className="text-[9px] font-bold uppercase text-gray-500">
                       Ruolo
                     </div>
-                    <div className="font-bold text-sm">
+                    <div className="font-bold text-xs sm:text-sm">
                       {selectedPlayer.position}
                     </div>
                   </div>
-                  <div className="bg-white border-2 border-black p-2.5">
-                    <div className="text-[10px] font-bold uppercase text-gray-500">
+                  <div className="bg-white border-2 border-black p-2">
+                    <div className="text-[9px] font-bold uppercase text-gray-500">
                       Nazionalità
                     </div>
-                    <div className="font-bold text-sm">
-                      {selectedPlayer.nationality}
+                    <div className="font-bold text-xs sm:text-sm">
+                      {getFirstFlag(selectedPlayer.nationality)}{" "}
+                      {selectedPlayer.nationality.split(" ")[0]}
                     </div>
                   </div>
                 </div>
 
                 {/* Breakdown presenze per decennio */}
-                <div className="bg-white border-2 border-black p-2.5">
-                  <div className="text-[10px] font-bold uppercase text-gray-500 mb-1.5">
+                <div className="bg-white border-2 border-black p-2">
+                  <div className="text-[9px] font-bold uppercase text-gray-500 mb-1">
                     Presenze Serie A per decennio
                   </div>
-                  <div className="grid grid-cols-5 gap-1.5 text-center">
+                  <div className="grid grid-cols-5 gap-1 text-center">
                     {ALBUM_DECADES.map((d) => (
                       <div
                         key={d.key}
-                        className={`p-1 border border-black text-[11px] font-bold ${
+                        className={`p-1 border border-black text-[10px] font-bold ${
                           d.key === selectedPlayer.album_decade
                             ? "bg-amber-200"
                             : "bg-gray-50"
                         }`}
                       >
-                        <div className="text-[9px] text-gray-600">{d.label}</div>
+                        <div className="text-[8px] text-gray-600">{d.label}</div>
                         <div>{selectedPlayer.decade_apps[d.key] || 0}</div>
                       </div>
                     ))}
                   </div>
                 </div>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleBackToAlbum}
-                    className="flex-1 py-2.5 bg-black hover:bg-gray-800 text-white font-bold uppercase text-xs border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                  >
-                    Torna al Raccoglitore
-                  </button>
-                  {currentIdxInDecade < decadePlayers.length - 1 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSelectedPlayer(decadePlayers[currentIdxInDecade + 1])
-                      }
-                      className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-black font-bold uppercase text-xs border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                    >
-                      Prossima →
-                    </button>
-                  )}
-                </div>
               </div>
             )}
 
-            {/* Unsolved Hints & Guess Form */}
+            {/* Unsolved Hints (1 single line of 3 columns) & Guess Form */}
             {!isSelectedSolved && (
               <>
-                <div className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-display font-bold uppercase text-base flex items-center gap-2">
-                      <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                      Indizi
-                    </h3>
-                    <span className="text-xs font-bold text-gray-600">
-                      Disponibili: {currentPoints} pt • Ricompensa:{" "}
-                      +{getPointsForAppearances(selectedPlayer.serie_a_apps)} pt
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div className="bg-white border-3 sm:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-2 sm:p-3">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
+                    {/* Indizio 1: Anno & Ruolo */}
                     <div
-                      className={`border-2 border-black p-2.5 ${
+                      className={`border-2 border-black p-1.5 sm:p-2 flex flex-col justify-between text-center ${
                         selectedHints.includes("anno_ruolo")
                           ? "bg-amber-50"
                           : "bg-white"
                       }`}
                     >
-                      <div className="text-[10px] font-bold uppercase text-gray-500 mb-1">
+                      <div className="text-[9px] sm:text-[10px] font-bold uppercase text-gray-500 leading-tight mb-1">
                         Anno & Ruolo
                       </div>
                       {selectedHints.includes("anno_ruolo") ? (
-                        <div className="font-bold text-xs">
+                        <div className="font-bold text-[11px] sm:text-xs leading-tight py-1">
                           {selectedPlayer.birth_year ?? "N/D"} •{" "}
                           {selectedPlayer.position}
                         </div>
                       ) : (
-                        <>
-                          <div className="font-bold text-xs text-gray-400">
-                            ???
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleUseHint("anno_ruolo")}
-                            disabled={hintMutation.isPending}
-                            className="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                          >
-                            ⭐ {HINT_COSTS.anno_ruolo} pt
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          onClick={() => handleUseHint("anno_ruolo")}
+                          disabled={hintMutation.isPending}
+                          className="w-full py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] sm:text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          ⭐ {HINT_COSTS.anno_ruolo} pt
+                        </button>
                       )}
                     </div>
 
+                    {/* Indizio 2: Nazione (solo bandiera 1ª nazionalità) & Presenze */}
                     <div
-                      className={`border-2 border-black p-2.5 ${
+                      className={`border-2 border-black p-1.5 sm:p-2 flex flex-col justify-between text-center ${
                         selectedHints.includes("nazionalita_presenze")
                           ? "bg-amber-50"
                           : "bg-white"
                       }`}
                     >
-                      <div className="text-[10px] font-bold uppercase text-gray-500 mb-1">
-                        Nazione & Presenze
+                      <div className="text-[9px] sm:text-[10px] font-bold uppercase text-gray-500 leading-tight mb-1">
+                        Nazione & Pres.
                       </div>
                       {selectedHints.includes("nazionalita_presenze") ? (
-                        <div className="font-bold text-xs">
-                          {selectedPlayer.nationality} •{" "}
-                          {selectedPlayer.serie_a_apps} pres.
+                        <div className="font-bold text-[11px] sm:text-xs leading-tight py-1 flex items-center justify-center gap-1">
+                          <span className="text-sm sm:text-base leading-none">
+                            {getFirstFlag(selectedPlayer.nationality)}
+                          </span>
+                          <span>• {selectedPlayer.serie_a_apps}</span>
                         </div>
                       ) : (
-                        <>
-                          <div className="font-bold text-xs text-gray-400">
-                            ???
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleUseHint("nazionalita_presenze")
-                            }
-                            disabled={hintMutation.isPending}
-                            className="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                          >
-                            ⭐ {HINT_COSTS.nazionalita_presenze} pt
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleUseHint("nazionalita_presenze")
+                          }
+                          disabled={hintMutation.isPending}
+                          className="w-full py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] sm:text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          ⭐ {HINT_COSTS.nazionalita_presenze} pt
+                        </button>
                       )}
                     </div>
 
+                    {/* Indizio 3: Iniziali Cognome */}
                     <div
-                      className={`border-2 border-black p-2.5 ${
+                      className={`border-2 border-black p-1.5 sm:p-2 flex flex-col justify-between text-center ${
                         selectedHints.includes("iniziali")
                           ? "bg-amber-50"
                           : "bg-white"
                       }`}
                     >
-                      <div className="text-[10px] font-bold uppercase text-gray-500 mb-1">
-                        Iniziali Cognome
+                      <div className="text-[9px] sm:text-[10px] font-bold uppercase text-gray-500 leading-tight mb-1">
+                        Iniziali
                       </div>
                       {selectedHints.includes("iniziali") ? (
-                        <div className="font-mono font-bold text-sm tracking-wider">
+                        <div className="font-mono font-bold text-xs sm:text-sm tracking-wider py-1">
                           {getSurnameInitials(selectedPlayer.name)}
                         </div>
                       ) : (
-                        <>
-                          <div className="font-bold text-xs text-gray-400">
-                            ???
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleUseHint("iniziali")}
-                            disabled={hintMutation.isPending}
-                            className="mt-2 w-full py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                          >
-                            ⭐ {HINT_COSTS.iniziali} pt
-                          </button>
-                        </>
+                        <button
+                          type="button"
+                          onClick={() => handleUseHint("iniziali")}
+                          disabled={hintMutation.isPending}
+                          className="w-full py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold text-[11px] sm:text-xs border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          ⭐ {HINT_COSTS.iniziali} pt
+                        </button>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-4">
-                  <h3 className="font-display font-bold uppercase text-base mb-1">
-                    Indovina il calciatore
-                  </h3>
-                  <p className="text-xs text-gray-600 mb-3">
-                    Inserisci nome o cognome per sbloccare la figurina e
-                    guadagnare{" "}
-                    <strong>
-                      +{getPointsForAppearances(selectedPlayer.serie_a_apps)} pt
-                    </strong>
-                    .
-                  </p>
-
+                <div className="bg-white border-3 sm:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-2.5 sm:p-3">
                   <div className="relative flex gap-2">
                     <div className="relative flex-1">
                       <input
@@ -1332,7 +1293,7 @@ export default function App() {
                           if (e.key === "Escape") setShowDropdown(false);
                         }}
                         placeholder="Scrivi il nome del calciatore..."
-                        className="w-full border-2 border-black px-3 py-2.5 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                        className="w-full border-2 border-black px-2.5 py-2 font-bold text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
                         autoComplete="off"
                       />
 
@@ -1343,9 +1304,9 @@ export default function App() {
                             .filter((n) =>
                               normalizePlayerStr(n).includes(normG)
                             )
-                            .slice(0, 10);
+                            .slice(0, 8);
                           return matches.length > 0 ? (
-                            <div className="absolute z-50 bottom-full mb-1 left-0 right-0 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-h-48 overflow-y-auto">
+                            <div className="absolute z-50 bottom-full mb-1 left-0 right-0 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-h-44 overflow-y-auto">
                               {matches.map((name) => (
                                 <button
                                   key={name}
@@ -1356,7 +1317,7 @@ export default function App() {
                                     setShowDropdown(false);
                                     inputRef.current?.focus();
                                   }}
-                                  className="w-full text-left px-3 py-2 font-bold text-xs hover:bg-amber-50 border-b border-gray-100 last:border-b-0"
+                                  className="w-full text-left px-3 py-1.5 font-bold text-xs hover:bg-amber-50 border-b border-gray-100 last:border-b-0"
                                 >
                                   {name}
                                 </button>
@@ -1370,18 +1331,18 @@ export default function App() {
                       type="button"
                       onClick={handleGuess}
                       disabled={!guess.trim() || guessMutation.isPending}
-                      className="bg-black hover:bg-gray-800 text-white font-bold uppercase text-xs px-5 border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
+                      className="bg-black hover:bg-gray-800 text-white font-bold uppercase text-xs px-4 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
                     >
                       Conferma
                     </button>
                   </div>
 
                   {attempts.length > 0 && (
-                    <div className="mt-3 space-y-1.5">
-                      {attempts.map((a, i) => (
+                    <div className="mt-2 space-y-1">
+                      {attempts.slice(0, 2).map((a, i) => (
                         <div
                           key={i}
-                          className={`flex items-center gap-2 px-3 py-1.5 border-2 border-black font-bold text-xs ${
+                          className={`flex items-center gap-1.5 px-2.5 py-1 border-2 border-black font-bold text-xs ${
                             a.correct
                               ? "bg-emerald-100 text-emerald-900"
                               : "bg-red-50 text-red-700"
@@ -1397,16 +1358,6 @@ export default function App() {
                       ))}
                     </div>
                   )}
-
-                  <div className="mt-4 pt-3 border-t border-gray-200">
-                    <button
-                      type="button"
-                      onClick={handleBackToAlbum}
-                      className="w-full py-2 bg-gray-100 hover:bg-gray-200 text-black font-bold uppercase text-xs border-2 border-black"
-                    >
-                      ← Torna al Raccoglitore
-                    </button>
-                  </div>
                 </div>
               </>
             )}

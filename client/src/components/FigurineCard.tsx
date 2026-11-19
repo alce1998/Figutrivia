@@ -140,6 +140,20 @@ export function getFlags(nationality: string): string {
   return flags.join(" ");
 }
 
+export function getFirstFlag(nationality: string): string {
+  let rest = nationality || "";
+  while (rest.trim()) {
+    const r = rest.trim();
+    const hit = COUNTRY_NAMES.find((n) => r.startsWith(n));
+    if (hit) {
+      return FLAG_BY_COUNTRY[hit];
+    }
+    const i = r.indexOf(" ");
+    rest = i === -1 ? "" : r.slice(i + 1);
+  }
+  return "🏳️";
+}
+
 type OverlayProps = {
   playerName: string;
   nationality: string;
