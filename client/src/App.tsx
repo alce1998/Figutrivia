@@ -961,18 +961,10 @@ export default function App() {
 
       {/* Player Detail View */}
       {activeTab === "album" && selectedPlayer && (
-        <div
-          className={`flex-1 flex flex-col min-h-0 bg-gray-50 p-1.5 sm:p-4 md:p-5 ${
-            isSelectedSolved ? "overflow-y-auto" : "overflow-hidden"
-          }`}
-        >
-          <div
-            className={`max-w-xl w-full mx-auto flex flex-col gap-1.5 sm:gap-3 ${
-              isSelectedSolved ? "" : "flex-1 min-h-0"
-            }`}
-          >
+        <div className="flex-1 overflow-y-auto bg-gray-50 px-2.5 pt-1.5 pb-6 sm:p-4 md:p-5">
+          <div className="max-w-xl w-full mx-auto space-y-1.5 sm:space-y-3">
             {/* Top Navigation Bar inside Detail: [<-]   [ <- | #numero | -> ]   [ ] */}
-            <div className="flex items-center justify-between gap-2 flex-shrink-0">
+            <div className="flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={handleBackToAlbum}
@@ -1023,47 +1015,26 @@ export default function App() {
               <div className="w-7" />
             </div>
 
-            {/* Enlarged Sticker: absolute inset-0 inside flex-1 min-h-0 guarantees 0px overflow while maximizing 3:4 sticker */}
+            {/* Enlarged Sticker: fixed 3:4 aspect ratio Driven strictly by width (no distortion) and sized to leave ~1-1.5cm bottom margin on mobile */}
             <div
-              className={
-                isSelectedSolved
-                  ? "flex items-center justify-center"
-                  : "relative flex-1 min-h-0 w-full"
-              }
+              onContextMenu={(e) => e.preventDefault()}
+              onDragStart={(e) => e.preventDefault()}
+              className="relative w-44 sm:w-60 mx-auto aspect-[3/4] border-3 sm:border-4 border-black bg-white select-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
             >
-              <div
-                className={
-                  isSelectedSolved
-                    ? "flex items-center justify-center w-full"
-                    : "absolute inset-0 flex items-center justify-center p-0.5"
-                }
-              >
-                <div
-                  onContextMenu={(e) => e.preventDefault()}
-                  onDragStart={(e) => e.preventDefault()}
-                  className={`relative aspect-[3/4] border-3 sm:border-4 border-black bg-white select-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden ${
-                    isSelectedSolved
-                      ? "w-48 sm:w-60 mx-auto"
-                      : "h-full max-h-full w-auto max-w-full"
-                  }`}
-                >
-                  <ProtectedImage
-                    src={selectedPlayer.photo_url}
-                    objectPosition="top"
-                    canvasWidth={540}
-                    canvasHeight={720}
-                    className="w-full h-full"
-                  />
-                  {isSelectedSolved && (
-                    <FigurinaSolvedOverlay
-                      size="lg"
-                      playerName={selectedPlayer.name}
-                      nationality={selectedPlayer.nationality}
-                      role={selectedPlayer.position}
-                    />
-                  )}
-                </div>
-              </div>
+              <ProtectedImage
+                src={selectedPlayer.photo_url}
+                objectPosition="top"
+                canvasWidth={480}
+                canvasHeight={640}
+              />
+              {isSelectedSolved && (
+                <FigurinaSolvedOverlay
+                  size="lg"
+                  playerName={selectedPlayer.name}
+                  nationality={selectedPlayer.nationality}
+                  role={selectedPlayer.position}
+                />
+              )}
             </div>
 
             {/* Action buttons: ❤️ (count/50) + ⚠️ icon */}
