@@ -961,10 +961,18 @@ export default function App() {
 
       {/* Player Detail View */}
       {activeTab === "album" && selectedPlayer && (
-        <div className="flex-1 overflow-y-auto bg-gray-50 p-2 sm:p-4 md:p-6">
-          <div className="max-w-xl mx-auto space-y-2 sm:space-y-4">
+        <div
+          className={`flex-1 flex flex-col min-h-0 bg-gray-50 p-2 sm:p-4 md:p-5 ${
+            isSelectedSolved ? "overflow-y-auto" : "overflow-hidden"
+          }`}
+        >
+          <div
+            className={`max-w-xl w-full mx-auto flex flex-col gap-2 sm:gap-3 ${
+              isSelectedSolved ? "" : "flex-1 min-h-0"
+            }`}
+          >
             {/* Top Navigation Bar inside Detail: [<-]   [ <- | #numero | -> ]   [ ] */}
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-between gap-2 flex-shrink-0">
               <button
                 type="button"
                 onClick={handleBackToAlbum}
@@ -1015,30 +1023,43 @@ export default function App() {
               <div className="w-8" />
             </div>
 
-            {/* Enlarged Sticker (compact on mobile so everything fits on 1 screen) */}
+            {/* Enlarged Sticker: fills all remaining vertical space while preserving 3:4 aspect ratio */}
             <div
-              onContextMenu={(e) => e.preventDefault()}
-              onDragStart={(e) => e.preventDefault()}
-              className="relative w-36 sm:w-56 mx-auto aspect-[3/4] border-3 sm:border-4 border-black bg-white select-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
+              className={
+                isSelectedSolved
+                  ? "flex items-center justify-center"
+                  : "flex-1 min-h-0 flex items-center justify-center py-0.5"
+              }
             >
-              <ProtectedImage
-                src={selectedPlayer.photo_url}
-                objectPosition="top"
-                canvasWidth={480}
-                canvasHeight={640}
-              />
-              {isSelectedSolved && (
-                <FigurinaSolvedOverlay
-                  size="lg"
-                  playerName={selectedPlayer.name}
-                  nationality={selectedPlayer.nationality}
-                  role={selectedPlayer.position}
+              <div
+                onContextMenu={(e) => e.preventDefault()}
+                onDragStart={(e) => e.preventDefault()}
+                className={`relative aspect-[3/4] border-3 sm:border-4 border-black bg-white select-none shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden ${
+                  isSelectedSolved
+                    ? "w-48 sm:w-60 mx-auto"
+                    : "h-full w-auto max-w-full"
+                }`}
+              >
+                <ProtectedImage
+                  src={selectedPlayer.photo_url}
+                  objectPosition="top"
+                  canvasWidth={540}
+                  canvasHeight={720}
+                  className="w-full h-full"
                 />
-              )}
+                {isSelectedSolved && (
+                  <FigurinaSolvedOverlay
+                    size="lg"
+                    playerName={selectedPlayer.name}
+                    nationality={selectedPlayer.nationality}
+                    role={selectedPlayer.position}
+                  />
+                )}
+              </div>
             </div>
 
             {/* Action buttons: ❤️ (count/50) + ⚠️ icon */}
-            <div className="flex items-center justify-center gap-2">
+            <div className="flex items-center justify-center gap-2 flex-shrink-0">
               {!isSelectedSolved && (
                 <button
                   type="button"
@@ -1179,7 +1200,7 @@ export default function App() {
 
             {/* Unsolved Hints (1 single line of 3 columns) & Guess Form */}
             {!isSelectedSolved && (
-              <>
+              <div className="flex-shrink-0 space-y-2">
                 <div className="bg-white border-3 sm:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-2 sm:p-3">
                   <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
                     {/* Indizio 1: Anno & Ruolo */}
@@ -1336,30 +1357,8 @@ export default function App() {
                       Conferma
                     </button>
                   </div>
-
-                  {attempts.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {attempts.slice(0, 2).map((a, i) => (
-                        <div
-                          key={i}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 border-2 border-black font-bold text-xs ${
-                            a.correct
-                              ? "bg-emerald-100 text-emerald-900"
-                              : "bg-red-50 text-red-700"
-                          }`}
-                        >
-                          {a.correct ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          ) : (
-                            <X className="w-3.5 h-3.5 text-red-500" />
-                          )}
-                          {a.value}
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              </>
+              </div>
             )}
           </div>
         </div>
