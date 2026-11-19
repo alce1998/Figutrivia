@@ -1,7 +1,7 @@
 // Service Worker per FiguTrivia PWA / TWA
 // Strategia Network-First: garantisce che ogni aggiornamento al sito o al dataset figurine
 // sia immediatamente visibile nell'App senza dover reinstallare nulla.
-const CACHE_NAME = "figutrivia-live-v2";
+const CACHE_NAME = "figutrivia-live-v3";
 const PRECACHE_URLS = ["/", "/manifest.json", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {

@@ -1015,11 +1015,11 @@ export default function App() {
               <div className="w-7" />
             </div>
 
-            {/* Enlarged Sticker: fixed 3:4 aspect ratio Driven strictly by width (no distortion) and sized to leave ~1-1.5cm bottom margin on mobile */}
+            {/* Enlarged Sticker: large 3:4 card (268x357px on mobile, ~70px shorter than original 320x427px max-w-xs so it stays big with ~1cm bottom margin and 0 distortion) */}
             <div
               onContextMenu={(e) => e.preventDefault()}
               onDragStart={(e) => e.preventDefault()}
-              className="relative w-44 sm:w-60 mx-auto aspect-[3/4] border-3 sm:border-4 border-black bg-white select-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
+              className="relative w-[268px] sm:w-72 mx-auto aspect-[3/4] border-3 sm:border-4 border-black bg-white select-none shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
             >
               <ProtectedImage
                 src={selectedPlayer.photo_url}
