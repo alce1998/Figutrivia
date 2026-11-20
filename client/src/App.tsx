@@ -160,7 +160,7 @@ export default function App() {
   const [loadingPlayers, setLoadingPlayers] = useState(true);
 
   const [activeTab, setActiveTab] = useState<MainTab>("album");
-  const [activeDecade, setActiveDecade] = useState<AlbumDecadeKey>("1980-89");
+  const [activeDecade, setActiveDecade] = useState<AlbumDecadeKey | null>(null);
   const [selectedRangeIdx, setSelectedRangeIdx] = useState(0);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selectedPlayer, setSelectedPlayer] = useState<FigurinaPlayer | null>(
@@ -345,8 +345,22 @@ export default function App() {
     return counts;
   }, [players, solvedSet]);
 
+  const coverPlayersByDecade = useMemo(() => {
+    const map: Partial<Record<AlbumDecadeKey, FigurinaPlayer>> = {};
+    for (const p of players) {
+      const cur = map[p.album_decade];
+      if (!cur || p.numero === 1 || p.serie_a_apps > cur.serie_a_apps) {
+        if (!cur || p.numero === 1) map[p.album_decade] = p;
+      }
+    }
+    return map;
+  }, [players]);
+
   const decadePlayers = useMemo(
-    () => players.filter((p) => p.album_decade === activeDecade),
+    () =>
+      activeDecade
+        ? players.filter((p) => p.album_decade === activeDecade)
+        : [],
     [players, activeDecade]
   );
 
@@ -382,7 +396,7 @@ export default function App() {
 
   // Restore scroll position when returning to the album grid
   useLayoutEffect(() => {
-    if (activeTab !== "album" || selectedPlayer) return;
+    if (activeTab !== "album" || selectedPlayer || !activeDecade) return;
     const el = gridContainerRef.current;
     const saved = savedScrollTopByDecade.current[activeDecade] ?? 0;
     if (!el || saved <= 0) return;
@@ -402,7 +416,7 @@ export default function App() {
   }, [selectedPlayer?.player_id]);
 
   const openPlayerDetail = (p: FigurinaPlayer) => {
-    if (gridContainerRef.current) {
+    if (gridContainerRef.current && activeDecade) {
       savedScrollTopByDecade.current[activeDecade] =
         gridContainerRef.current.scrollTop;
     }
@@ -555,7 +569,14 @@ export default function App() {
 
       {/* Header */}
       <header className="bg-amber-400 border-b-2 sm:border-b-4 border-black px-2.5 py-1.5 sm:px-4 sm:py-2.5 flex items-center justify-between gap-1.5 sm:gap-3 flex-shrink-0">
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div
+          onClick={() => {
+            setActiveTab("album");
+            setSelectedPlayer(null);
+            setActiveDecade(null);
+          }}
+          className="flex items-center gap-2 sm:gap-3 min-w-0 cursor-pointer"
+        >
           <div className="w-7 h-7 sm:w-10 sm:h-10 bg-black text-amber-400 border-2 border-black flex items-center justify-center font-display font-black text-sm sm:text-xl shadow-[2px_2px_0px_0px_rgba(255,255,255,0.6)] flex-shrink-0">
             FT
           </div>
@@ -582,6 +603,7 @@ export default function App() {
             onClick={() => {
               setActiveTab("album");
               setSelectedPlayer(null);
+              setActiveDecade(null);
               if (user) refetchAlbumState();
             }}
             className={`px-2 py-1 sm:px-3 sm:py-1.5 font-display font-black uppercase text-[11px] sm:text-xs border-2 border-black flex items-center gap-1 sm:gap-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
@@ -739,60 +761,121 @@ export default function App() {
         </div>
       )}
 
-      {activeTab === "album" && !selectedPlayer && (
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Decade Selector + Progress + Filters (ultra-compact on mobile) */}
-          <div className="bg-white border-b-2 sm:border-b-4 border-black px-2 py-1.5 sm:px-4 sm:py-3 space-y-1.5 sm:space-y-2.5 flex-shrink-0">
-            <div className="max-w-7xl mx-auto space-y-1.5 sm:space-y-2.5">
-              {/* Row 1: 5 Decade Albums (single horizontal scroll row on mobile) */}
-              <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto sm:flex-wrap pb-0.5 sm:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {ALBUM_DECADES.map((d) => {
-                  const totalD = totalsByDecade[d.key] || 0;
-                  const solvedD = solvedByDecade[d.key] || 0;
-                  const active = activeDecade === d.key;
-                  const shortLabel = d.label.replace(/^19|^20/, "");
-                  return (
-                    <button
-                      key={d.key}
-                      type="button"
-                      onClick={() => {
-                        setActiveDecade(d.key);
-                        setSelectedRangeIdx(0);
-                        setCompactMobileFilters(false);
-                      }}
-                      className={`px-2 py-1 sm:px-3 sm:py-1.5 border-2 border-black font-display font-black uppercase text-[11px] sm:text-xs flex items-center gap-1.5 sm:gap-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all flex-shrink-0 ${
-                        active
-                          ? "bg-black text-white"
-                          : "bg-gray-100 text-black hover:bg-amber-100"
-                      }`}
-                    >
-                      <span className="hidden sm:inline">Album {d.label}</span>
-                      <span className="sm:hidden">{shortLabel}</span>
-                      <span
-                        className={`px-1.5 py-0.2 text-[10px] rounded-full font-bold leading-tight ${
-                          active
-                            ? "bg-amber-400 text-black"
-                            : "bg-white text-black border border-black"
-                        }`}
-                      >
-                        {solvedD}/{totalD}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+      {/* Single-Page 5 Square Albums Home Selector */}
+      {activeTab === "album" && !selectedPlayer && !activeDecade && (
+        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-gray-50 flex flex-col justify-center">
+          <div className="max-w-5xl w-full mx-auto space-y-2.5 sm:space-y-4">
+            <div className="text-center">
+              <h2 className="font-display font-black uppercase text-sm sm:text-xl tracking-tight">
+                Scegli l'Album da Aprire
+              </h2>
+              <p className="text-[11px] sm:text-xs font-bold text-gray-600">
+                5 Album in ordine cronologico • Totale completato:{" "}
+                {totalPlayersCount > 0
+                  ? Math.round((totalSolvedCount / totalPlayersCount) * 1000) /
+                    10
+                  : 0}
+                % ({totalSolvedCount}/{totalPlayersCount || "—"})
+              </p>
+            </div>
 
-              {/* Desktop full progress bar; Mobile thin 4px progress bar */}
-              <div className="hidden sm:block">
-                <div className="flex items-center justify-between text-xs font-bold uppercase mb-1">
-                  <span>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4 max-w-[330px] sm:max-w-none mx-auto">
+              {ALBUM_DECADES.map((d) => {
+                const totalD = totalsByDecade[d.key] || 0;
+                const solvedD = solvedByDecade[d.key] || 0;
+                const pct =
+                  totalD > 0 ? Math.round((solvedD / totalD) * 100) : 0;
+                const coverPlayer = coverPlayersByDecade[d.key];
+
+                return (
+                  <button
+                    key={d.key}
+                    type="button"
+                    onClick={() => {
+                      setActiveDecade(d.key);
+                      setSelectedRangeIdx(0);
+                      setCompactMobileFilters(false);
+                    }}
+                    className="group relative aspect-square border-3 sm:border-4 border-black bg-gray-200 overflow-hidden select-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-0.5 transition-all text-left last:col-span-2 last:w-[calc(50%-5px)] last:mx-auto sm:last:col-span-1 sm:last:w-auto"
+                  >
+                    {coverPlayer ? (
+                      <ProtectedImage
+                        src={coverPlayer.photo_url}
+                        objectPosition="top"
+                        canvasWidth={360}
+                        canvasHeight={360}
+                        className="w-full h-full transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 animate-pulse" />
+                    )}
+
+                    {/* Top badge: Album Decade */}
+                    <div className="absolute top-1.5 left-1.5 right-1.5 z-20 flex items-center justify-between gap-1 pointer-events-none">
+                      <span
+                        className={`${d.badgeColor} text-black font-display font-black uppercase text-[11px] sm:text-xs px-2 py-0.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]`}
+                      >
+                        {d.label}
+                      </span>
+                      <span className="bg-black text-amber-400 font-mono font-black text-[11px] sm:text-xs px-1.5 py-0.5 border border-white/60">
+                        {pct}%
+                      </span>
+                    </div>
+
+                    {/* Bottom overlay: Completion % & Progress Bar */}
+                    <div className="absolute inset-x-0 bottom-0 z-20 bg-black/90 text-white px-2 py-1.5 border-t-2 border-black pointer-events-none">
+                      <div className="flex items-center justify-between text-[10px] sm:text-[11px] font-bold uppercase mb-1">
+                        <span className="truncate">Album {d.label}</span>
+                        <span className="font-mono text-amber-400 flex-shrink-0">
+                          {solvedD}/{totalD}
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 sm:h-2 bg-gray-700 border border-white/40">
+                        <div
+                          className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-300"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "album" && !selectedPlayer && activeDecade && (
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Active Album Header + Ranges & Status filter */}
+          <div className="bg-white border-b-2 sm:border-b-4 border-black px-2 py-1.5 sm:px-4 sm:py-2.5 space-y-1.5 flex-shrink-0">
+            <div className="max-w-7xl mx-auto space-y-1.5">
+              {/* Row 1: Back to 5 Albums + Current Album Title & Completion % */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveDecade(null)}
+                    title="Torna alla selezione Album"
+                    className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-white hover:bg-gray-100 text-black font-bold text-xs uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center gap-1 flex-shrink-0"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Album</span>
+                  </button>
+                  <span
+                    className={`${
+                      ALBUM_DECADES.find((d) => d.key === activeDecade)
+                        ?.badgeColor ?? "bg-amber-400"
+                    } px-2 py-0.5 border-2 border-black font-display font-black uppercase text-xs sm:text-sm truncate`}
+                  >
                     Album{" "}
                     {ALBUM_DECADES.find((d) => d.key === activeDecade)?.label ||
-                      activeDecade}{" "}
-                    ({ALBUM_DECADES.find((d) => d.key === activeDecade)?.subtitle})
-                    {" "}— ordinato per presenze in Serie A
+                      activeDecade}
                   </span>
-                  <span>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="font-mono font-black text-xs bg-black text-amber-400 px-2 py-0.5 border border-black">
                     {solvedByDecade[activeDecade]}/{totalsByDecade[activeDecade]}{" "}
                     (
                     {totalsByDecade[activeDecade] > 0
@@ -804,20 +887,6 @@ export default function App() {
                       : 0}
                     %)
                   </span>
-                </div>
-                <div className="w-full h-3 bg-gray-200 border-2 border-black">
-                  <div
-                    className="h-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-300"
-                    style={{
-                      width: `${
-                        totalsByDecade[activeDecade] > 0
-                          ? (solvedByDecade[activeDecade] /
-                              totalsByDecade[activeDecade]) *
-                            100
-                          : 0
-                      }%`,
-                    }}
-                  />
                 </div>
               </div>
 
