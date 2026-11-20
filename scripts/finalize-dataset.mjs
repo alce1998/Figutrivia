@@ -61,6 +61,7 @@ const OVERRIDES = {
     photo_kind: "tm",
   },
   "555015": {
+    name: "Ruan Tressoldi",
     photo_source:
       "https://img.a.transfermarkt.technology/portrait/big/555015-1695028065.jpg",
     photo_kind: "tm",
@@ -326,6 +327,7 @@ async function main() {
   for (const p of enriched) {
     const ov = OVERRIDES[p.player_id];
     if (ov) {
+      if (ov.name) p.name = ov.name;
       if (ov.birth_year) p.birth_year = ov.birth_year;
       if (ov.photo_source) p.photo_source = ov.photo_source;
       if (ov.photo_kind) p.photo_kind = ov.photo_kind;
