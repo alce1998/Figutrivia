@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Check, Gift, RotateCw, Sparkles } from "lucide-react";
 import { ALBUM_DECADES, type FigurinaPlayer } from "@shared/figutrivia";
-import { FigurinaSolvedOverlay, getFlags } from "@/components/FigurineCard";
+import {
+  CountryFlag,
+  FigurinaSolvedOverlay,
+  getFirstCountryName,
+} from "@/components/FigurineCard";
 import { ProtectedImage } from "@/components/ProtectedImage";
 
 export interface ReceivedGiftItem {
@@ -51,7 +55,6 @@ export function GiftRevealModal({
   }, [gift.id, animRunId]);
 
   const decadeInfo = ALBUM_DECADES.find((d) => d.key === player.album_decade);
-  const flags = getFlags(player.nationality);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
@@ -158,8 +161,13 @@ export function GiftRevealModal({
                 <span className="text-[10px] font-bold uppercase text-gray-500 block">
                   Nazionalità
                 </span>
-                <span className="font-black">
-                  {flags} {player.nationality}
+                <span className="font-black inline-flex items-center gap-1.5">
+                  <CountryFlag
+                    nationality={player.nationality}
+                    onlyFirst
+                    size="md"
+                  />
+                  <span>{getFirstCountryName(player.nationality)}</span>
                 </span>
               </div>
               <div className="bg-gray-50 border border-black px-2 py-1 col-span-2 flex items-center justify-between">

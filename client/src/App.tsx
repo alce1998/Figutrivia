@@ -38,8 +38,9 @@ import {
 import { AuthModal } from "@/components/AuthModal";
 import { ErrorReportModal } from "@/components/ErrorReportModal";
 import {
+  CountryFlag,
   FigurinaSolvedOverlay,
-  getFirstFlag,
+  getFirstCountryName,
 } from "@/components/FigurineCard";
 import {
   GiftRevealModal,
@@ -1146,9 +1147,15 @@ export default function App() {
                     <div className="text-[9px] font-bold uppercase text-gray-500">
                       Nazionalità
                     </div>
-                    <div className="font-bold text-xs sm:text-sm">
-                      {getFirstFlag(selectedPlayer.nationality)}{" "}
-                      {selectedPlayer.nationality.split(" ")[0]}
+                    <div className="font-bold text-xs sm:text-sm flex items-center gap-1.5">
+                      <CountryFlag
+                        nationality={selectedPlayer.nationality}
+                        onlyFirst
+                        size="md"
+                      />
+                      <span>
+                        {getFirstCountryName(selectedPlayer.nationality)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1222,10 +1229,13 @@ export default function App() {
                         Nazione & Pres.
                       </div>
                       {selectedHints.includes("nazionalita_presenze") ? (
-                        <div className="font-bold text-[11px] sm:text-xs leading-tight py-0.5 flex items-center justify-center gap-1">
-                          <span className="text-sm sm:text-base leading-none">
-                            {getFirstFlag(selectedPlayer.nationality)}
-                          </span>
+                        <div className="font-bold text-[11px] sm:text-xs leading-tight py-0.5 flex items-center justify-center gap-1 flex-wrap">
+                          <CountryFlag
+                            nationality={selectedPlayer.nationality}
+                            onlyFirst
+                            showNameOnDesktop
+                            size="md"
+                          />
                           <span>• {selectedPlayer.serie_a_apps}</span>
                         </div>
                       ) : (
