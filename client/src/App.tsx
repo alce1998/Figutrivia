@@ -1300,10 +1300,18 @@ export default function App() {
                       {showDropdown &&
                         (() => {
                           const normG = normalizePlayerStr(guess);
+                          const altG = normG
+                            .replace(/ae/g, "a")
+                            .replace(/oe/g, "o");
                           const matches = allPlayerNames
-                            .filter((n) =>
-                              normalizePlayerStr(n).includes(normG)
-                            )
+                            .filter((n) => {
+                              const normN = normalizePlayerStr(n);
+                              if (normN.includes(normG)) return true;
+                              return normN
+                                .replace(/ae/g, "a")
+                                .replace(/oe/g, "o")
+                                .includes(altG);
+                            })
                             .slice(0, 8);
                           return matches.length > 0 ? (
                             <div className="absolute z-50 bottom-full mb-1 left-0 right-0 border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] max-h-44 overflow-y-auto">

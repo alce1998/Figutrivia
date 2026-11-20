@@ -21,11 +21,21 @@ describe("FiguTrivia scoring & name matching", () => {
     expect(getPointsForSection(561)).toBe(4);
   });
 
-  it("matches full names and surnames ignoring accents", () => {
+  it("matches full names and surnames ignoring accents and special characters (ø, ł, æ, ß, ı)", () => {
     expect(matchesPlayerName("Paolo Maldini", "Paolo Maldini")).toBe(true);
     expect(matchesPlayerName("Maldini", "Paolo Maldini")).toBe(true);
     expect(matchesPlayerName("Alvarez", "Édgar Álvarez")).toBe(true);
     expect(matchesPlayerName("Di Natale", "Antonio Di Natale")).toBe(true);
+    expect(matchesPlayerName("Jorgensen", "Martin Jørgensen")).toBe(true);
+    expect(matchesPlayerName("Hojlund", "Rasmus Højlund")).toBe(true);
+    expect(matchesPlayerName("Ostigard", "Leo Østigård")).toBe(true);
+    expect(matchesPlayerName("Sorensen", "Frederik Sørensen")).toBe(true);
+    expect(matchesPlayerName("Wszolek", "Paweł Wszołek")).toBe(true);
+    expect(matchesPlayerName("Yildiz", "Kenan Yıldız")).toBe(true);
+    expect(matchesPlayerName("Elkjaer", "Preben Elkjær")).toBe(true);
+    expect(matchesPlayerName("Elkjar", "Preben Elkjær")).toBe(true);
+    expect(matchesPlayerName("Hassler", "Thomas Häßler")).toBe(true);
+    expect(matchesPlayerName("Tressoldi", "Ruan Tressoldi")).toBe(true);
     expect(matchesPlayerName("Gianluigi", "Gianluigi Buffon")).toBe(false);
   });
 

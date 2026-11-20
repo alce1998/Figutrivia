@@ -178,9 +178,18 @@ export const TROPHIES: TrophyDefinition[] = [
 export function normalizePlayerStr(s: string): string {
   return s
     .toLowerCase()
+    .replace(/[øǿ]/g, "o")
+    .replace(/ł/g, "l")
+    .replace(/ı/g, "i")
+    .replace(/[đð]/g, "d")
+    .replace(/ß/g, "ss")
+    .replace(/æ/g, "ae")
+    .replace(/œ/g, "oe")
+    .replace(/þ/g, "th")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -224,7 +233,12 @@ export function matchesPlayerName(guess: string, fullName: string): boolean {
   const normFull = normalizePlayerStr(fullName);
   const normSurname = normalizePlayerStr(extractSurname(fullName));
   if (!normGuess) return false;
-  return normGuess === normFull || normGuess === normSurname;
+  if (normGuess === normFull || normGuess === normSurname) return true;
+  // Also allow "a" for "ae" (e.g. Elkjar / Elkjaer for Elkjær) and "oe" for "o" (e.g. Joergensen / Jorgensen)
+  const altGuess = normGuess.replace(/ae/g, "a").replace(/oe/g, "o");
+  const altFull = normFull.replace(/ae/g, "a").replace(/oe/g, "o");
+  const altSurname = normSurname.replace(/ae/g, "a").replace(/oe/g, "o");
+  return altGuess === altFull || altGuess === altSurname;
 }
 
 export function getSurnameInitials(fullName: string): string {
