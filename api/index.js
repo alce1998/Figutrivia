@@ -5,7 +5,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 
 // server/routers.ts
 import { TRPCError as TRPCError2 } from "@trpc/server";
-import { and, desc, eq as eq2, sql as sql2 } from "drizzle-orm";
+import { and, desc, eq as eq2, inArray, sql as sql2 } from "drizzle-orm";
 import nodemailer from "nodemailer";
 import { z } from "zod";
 
@@ -158,6 +158,8 @@ var HINT_COSTS = {
 };
 var MAX_MANCOLISTA_SIZE = 50;
 var MAX_DAILY_GIFTS = 5;
+var PACK_COST = 20;
+var PACK_SIZE = 5;
 function getPointsForSection(numero) {
   if (numero <= 150) return 1;
   if (numero <= 300) return 2;
@@ -990,6 +992,90 @@ var appRouter = router({
         success: true,
         emailSent,
         recipient: ENV.errorReportEmail
+      };
+    }),
+    buyPack: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const ptsRows = await db.select().from(figutriviaPoints).where(eq2(figutriviaPoints.userId, ctx.user.id)).limit(1);
+      const currentPoints = ptsRows[0]?.points ?? 0;
+      if (currentPoints < PACK_COST) {
+        throw new TRPCError2({
+          code: "BAD_REQUEST",
+          message: `Punti indizio insufficienti! Servono ${PACK_COST} pt per aprire un pacchetto (hai ${currentPoints} pt).`
+        });
+      }
+      const nextPoints = currentPoints - PACK_COST;
+      await db.update(figutriviaPoints).set({ points: nextPoints }).where(eq2(figutriviaPoints.userId, ctx.user.id));
+      const allPlayers = getAllPlayers();
+      const pool = [...allPlayers];
+      const drawnPlayers = [];
+      const countToDraw = Math.min(PACK_SIZE, pool.length);
+      for (let i = 0; i < countToDraw; i++) {
+        const randIdx = i + Math.floor(Math.random() * (pool.length - i));
+        const tmp = pool[i];
+        pool[i] = pool[randIdx];
+        pool[randIdx] = tmp;
+        drawnPlayers.push(pool[i]);
+      }
+      const drawnIds = drawnPlayers.map((p) => p.player_id);
+      const [existingProgressRows, receivedGiftsRows] = await Promise.all([
+        db.select().from(figutriviaProgress).where(
+          and(
+            eq2(figutriviaProgress.userId, ctx.user.id),
+            inArray(figutriviaProgress.playerId, drawnIds)
+          )
+        ),
+        db.select({ playerId: figutriviaMancolistaGifts.playerId }).from(figutriviaMancolistaGifts).where(
+          and(
+            eq2(figutriviaMancolistaGifts.recipientUserId, ctx.user.id),
+            inArray(figutriviaMancolistaGifts.playerId, drawnIds)
+          )
+        )
+      ]);
+      const existingByPlayerId = new Map(
+        existingProgressRows.map((r) => [r.playerId, r])
+      );
+      const giftedSet = new Set(receivedGiftsRows.map((g) => g.playerId));
+      const cards = [];
+      const newPlayerIds = [];
+      for (const p of drawnPlayers) {
+        const ex = existingByPlayerId.get(p.player_id);
+        const alreadySolved = ex && ex.solved === 1 || giftedSet.has(p.player_id);
+        const isNew = !alreadySolved;
+        cards.push({ playerId: p.player_id, isNew });
+        if (isNew) {
+          newPlayerIds.push(p.player_id);
+          if (ex) {
+            await db.update(figutriviaProgress).set({
+              solved: 1,
+              solvedAt: /* @__PURE__ */ new Date()
+            }).where(eq2(figutriviaProgress.id, ex.id));
+          } else {
+            await db.insert(figutriviaProgress).values({
+              userId: ctx.user.id,
+              playerId: p.player_id,
+              solved: 1,
+              hintsUsed: JSON.stringify([]),
+              pointsAwarded: 0,
+              solvedAt: /* @__PURE__ */ new Date()
+            });
+          }
+        }
+      }
+      if (newPlayerIds.length > 0) {
+        await db.delete(figutriviaMancolista).where(
+          and(
+            eq2(figutriviaMancolista.userId, ctx.user.id),
+            inArray(figutriviaMancolista.playerId, newPlayerIds)
+          )
+        );
+      }
+      const newlyUnlockedTrophies = newPlayerIds.length > 0 ? await evaluateAndUnlockTrophies(db, ctx.user.id) : [];
+      return {
+        cards,
+        newPoints: nextPoints,
+        newlyUnlockedTrophies
       };
     })
   }),

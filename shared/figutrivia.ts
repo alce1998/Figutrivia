@@ -69,6 +69,8 @@ export type HintType = keyof typeof HINT_COSTS;
 
 export const MAX_MANCOLISTA_SIZE = 50;
 export const MAX_DAILY_GIFTS = 5;
+export const PACK_COST = 20;
+export const PACK_SIZE = 5;
 
 /**
  * Calcola i punti indizio guadagnati indovinando un giocatore in base alla sezione dell'album:

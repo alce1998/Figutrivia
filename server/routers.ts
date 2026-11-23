@@ -17,6 +17,8 @@ import {
   HINT_COSTS,
   MAX_DAILY_GIFTS,
   MAX_MANCOLISTA_SIZE,
+  PACK_COST,
+  PACK_SIZE,
   TROPHIES,
   getAlbumSections,
   getPointsForSection,
@@ -594,6 +596,127 @@ export const appRouter = router({
           recipient: ENV.errorReportEmail,
         };
       }),
+
+    buyPack: protectedProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const ptsRows = await db
+        .select()
+        .from(figutriviaPoints)
+        .where(eq(figutriviaPoints.userId, ctx.user.id))
+        .limit(1);
+      const currentPoints = ptsRows[0]?.points ?? 0;
+
+      if (currentPoints < PACK_COST) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `Punti indizio insufficienti! Servono ${PACK_COST} pt per aprire un pacchetto (hai ${currentPoints} pt).`,
+        });
+      }
+
+      const nextPoints = currentPoints - PACK_COST;
+      await db
+        .update(figutriviaPoints)
+        .set({ points: nextPoints })
+        .where(eq(figutriviaPoints.userId, ctx.user.id));
+
+      // Estrai 5 figurine casuali con probabilità uniforme su tutto il database
+      const allPlayers = getAllPlayers();
+      const pool = [...allPlayers];
+      const drawnPlayers = [];
+      const countToDraw = Math.min(PACK_SIZE, pool.length);
+      for (let i = 0; i < countToDraw; i++) {
+        const randIdx = i + Math.floor(Math.random() * (pool.length - i));
+        const tmp = pool[i];
+        pool[i] = pool[randIdx];
+        pool[randIdx] = tmp;
+        drawnPlayers.push(pool[i]);
+      }
+
+      const drawnIds = drawnPlayers.map((p) => p.player_id);
+
+      const [existingProgressRows, receivedGiftsRows] = await Promise.all([
+        db
+          .select()
+          .from(figutriviaProgress)
+          .where(
+            and(
+              eq(figutriviaProgress.userId, ctx.user.id),
+              inArray(figutriviaProgress.playerId, drawnIds)
+            )
+          ),
+        db
+          .select({ playerId: figutriviaMancolistaGifts.playerId })
+          .from(figutriviaMancolistaGifts)
+          .where(
+            and(
+              eq(figutriviaMancolistaGifts.recipientUserId, ctx.user.id),
+              inArray(figutriviaMancolistaGifts.playerId, drawnIds)
+            )
+          ),
+      ]);
+
+      const existingByPlayerId = new Map(
+        existingProgressRows.map((r) => [r.playerId, r])
+      );
+      const giftedSet = new Set(receivedGiftsRows.map((g) => g.playerId));
+
+      const cards: Array<{ playerId: string; isNew: boolean }> = [];
+      const newPlayerIds: string[] = [];
+
+      for (const p of drawnPlayers) {
+        const ex = existingByPlayerId.get(p.player_id);
+        const alreadySolved =
+          (ex && ex.solved === 1) || giftedSet.has(p.player_id);
+        const isNew = !alreadySolved;
+        cards.push({ playerId: p.player_id, isNew });
+
+        if (isNew) {
+          newPlayerIds.push(p.player_id);
+          if (ex) {
+            await db
+              .update(figutriviaProgress)
+              .set({
+                solved: 1,
+                solvedAt: new Date(),
+              })
+              .where(eq(figutriviaProgress.id, ex.id));
+          } else {
+            await db.insert(figutriviaProgress).values({
+              userId: ctx.user.id,
+              playerId: p.player_id,
+              solved: 1,
+              hintsUsed: JSON.stringify([]),
+              pointsAwarded: 0,
+              solvedAt: new Date(),
+            });
+          }
+        }
+      }
+
+      if (newPlayerIds.length > 0) {
+        await db
+          .delete(figutriviaMancolista)
+          .where(
+            and(
+              eq(figutriviaMancolista.userId, ctx.user.id),
+              inArray(figutriviaMancolista.playerId, newPlayerIds)
+            )
+          );
+      }
+
+      const newlyUnlockedTrophies =
+        newPlayerIds.length > 0
+          ? await evaluateAndUnlockTrophies(db, ctx.user.id)
+          : [];
+
+      return {
+        cards,
+        newPoints: nextPoints,
+        newlyUnlockedTrophies,
+      };
+    }),
   }),
 
   mancolista: router({

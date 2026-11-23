@@ -17,6 +17,8 @@ import {
   Heart,
   LogIn,
   LogOut,
+  PackageOpen,
+  Sparkles,
   Star,
   Trophy,
   User,
@@ -26,6 +28,8 @@ import {
   ALBUM_DECADES,
   HINT_COSTS,
   MAX_MANCOLISTA_SIZE,
+  PACK_COST,
+  PACK_SIZE,
   TROPHIES,
   getAlbumSections,
   getPointsForSection,
@@ -47,6 +51,10 @@ import {
   type ReceivedGiftItem,
 } from "@/components/GiftRevealModal";
 import { MancolisteView } from "@/components/MancolisteView";
+import {
+  PackOpeningModal,
+  type DrawnPackCard,
+} from "@/components/PackOpeningModal";
 import { ProtectedImage } from "@/components/ProtectedImage";
 import { TrophiesView } from "@/components/TrophiesView";
 import { trpc } from "@/lib/trpc";
@@ -271,6 +279,10 @@ export default function App() {
   const guessMutation = trpc.album.guessPlayer.useMutation();
   const hintMutation = trpc.album.useHint.useMutation();
   const toggleMancoMutation = trpc.mancolista.toggle.useMutation();
+  const buyPackMutation = trpc.album.buyPack.useMutation();
+  const [openedPackCards, setOpenedPackCards] = useState<DrawnPackCard[] | null>(
+    null
+  );
 
   const playersById = useMemo(
     () => new Map(players.map((p) => [p.player_id, p])),
@@ -467,6 +479,44 @@ export default function App() {
       toast.success(`Indizio svelato! Punti rimasti: ${res.newPoints} pt`);
     } catch (err: any) {
       toast.error(err?.message || "Punti indizio insufficienti.");
+    }
+  };
+
+  const handleBuyPack = async () => {
+    if (!requireAuth()) return;
+    try {
+      const res = await buyPackMutation.mutateAsync();
+      const mapped: DrawnPackCard[] = [];
+      for (const c of res.cards) {
+        const p = playersById.get(c.playerId);
+        if (p) mapped.push({ player: p, isNew: c.isNew });
+      }
+      setOpenedPackCards(mapped);
+      await refetchAlbumState();
+
+      for (const tid of res.newlyUnlockedTrophies) {
+        const t = TROPHIES.find((x) => x.id === tid);
+        if (t) {
+          toast.success(`${t.icon} Trofeo sbloccato: ${t.title}!`, {
+            duration: 5000,
+          });
+        } else if (tid.startsWith("album_") && tid.includes("_sec_")) {
+          const m = tid.match(/^album_(.+)_sec_(\d+)$/);
+          if (m) {
+            const decKey = m[1] as AlbumDecadeKey;
+            const secIdx = Number(m[2]);
+            const decInfo = ALBUM_DECADES.find((d) => d.key === decKey);
+            const secs = getAlbumSections(decKey, totalsByDecade[decKey] || 0);
+            const secInfo = secs.find((s) => s.index === secIdx);
+            toast.success(
+              `🧩 Parte ${secIdx}/${secs.length} del Trofeo Album ${decInfo?.label ?? decKey} sbloccata (Sez. ${secInfo?.label ?? secIdx})!`,
+              { duration: 5500 }
+            );
+          }
+        }
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Impossibile acquistare il pacchetto.");
     }
   };
 
@@ -742,7 +792,11 @@ export default function App() {
         <div className="flex-1 overflow-y-auto p-4 md:p-6 max-w-6xl w-full mx-auto">
           <MancolisteView
             playersById={playersById}
+            allPlayerNames={allPlayerNames}
             solvedSet={solvedSet}
+            progressMap={progressMap}
+            currentPoints={currentPoints}
+            totalsByDecade={totalsByDecade}
             onSelectPlayer={openPlayerDetail}
             onAfterMutate={() => refetchAlbumState()}
           />
@@ -841,6 +895,52 @@ export default function App() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Shop dei Pacchetti Figurine in Homepage */}
+            <div className="max-w-[330px] sm:max-w-3xl mx-auto w-full bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-300 border-3 sm:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-2.5 sm:p-4 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4">
+              <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+                {/* Illustrazione Bustina di Figurine */}
+                <div className="relative w-11 h-14 sm:w-14 sm:h-18 bg-rose-600 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-between py-1 px-1 flex-shrink-0 -rotate-3">
+                  <div className="w-full h-1 bg-amber-300 border-b border-black" />
+                  <div className="bg-black text-amber-400 font-display font-black text-[9px] sm:text-xs px-1 border border-white leading-tight">
+                    FT
+                  </div>
+                  <div className="bg-white text-black font-mono font-black text-[8px] sm:text-[9px] px-1 border border-black leading-none">
+                    x{PACK_SIZE}
+                  </div>
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-display font-black uppercase text-xs sm:text-base text-black leading-tight">
+                      Edicola • Pacchetto Figurine
+                    </span>
+                    <span className="bg-black text-amber-400 font-mono font-black text-[10px] sm:text-xs px-1.5 py-0.5">
+                      {PACK_SIZE} FIGURINE
+                    </span>
+                  </div>
+                  <p className="text-[10px] sm:text-xs font-bold text-black/80 leading-snug mt-0.5">
+                    Ogni pacchetto contiene {PACK_SIZE} figurine casuali (tutte
+                    con la stessa probabilità). Se trovi un giocatore che ti
+                    manca, viene incollato subito nell'album!
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={buyPackMutation.isPending}
+                onClick={handleBuyPack}
+                className="w-full sm:w-auto px-3.5 py-2 sm:px-4 sm:py-2.5 bg-black hover:bg-gray-900 text-amber-400 font-display font-black uppercase text-xs sm:text-sm border-2 border-black shadow-[3px_3px_0px_0px_rgba(255,255,255,0.8)] flex items-center justify-center gap-1.5 flex-shrink-0 cursor-pointer disabled:opacity-50"
+              >
+                <PackageOpen className="w-4 h-4 text-emerald-400" />
+                <span>
+                  {buyPackMutation.isPending
+                    ? "Apertura..."
+                    : `Sbusta (${PACK_COST} ⭐)`}
+                </span>
+              </button>
             </div>
           </div>
         </div>
@@ -1444,6 +1544,20 @@ export default function App() {
         player={reportPlayer}
         onClose={() => setReportPlayer(null)}
       />
+
+      {openedPackCards && (
+        <PackOpeningModal
+          cards={openedPackCards}
+          currentPoints={currentPoints}
+          isBuyingAnother={buyPackMutation.isPending}
+          onBuyAnother={handleBuyPack}
+          onClose={() => setOpenedPackCards(null)}
+          onOpenPlayerInAlbum={(p) => {
+            setOpenedPackCards(null);
+            openPlayerDetail(p);
+          }}
+        />
+      )}
 
       {(() => {
         const unseenGifts: ReceivedGiftItem[] = (
