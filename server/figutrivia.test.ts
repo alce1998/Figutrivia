@@ -36,6 +36,10 @@ describe("FiguTrivia scoring & name matching", () => {
     expect(matchesPlayerName("Elkjar", "Preben Elkjær")).toBe(true);
     expect(matchesPlayerName("Hassler", "Thomas Häßler")).toBe(true);
     expect(matchesPlayerName("Tressoldi", "Ruan Tressoldi")).toBe(true);
+    expect(matchesPlayerName("Samir", "Samir")).toBe(true);
+    expect(matchesPlayerName("Samir Caetano", "Samir")).toBe(true);
+    expect(matchesPlayerName("Ellertsson", "Mikael Egill Ellertsson")).toBe(true);
+    expect(matchesPlayerName("Ellertson", "Mikael Egill Ellertsson")).toBe(true);
     expect(matchesPlayerName("Gianluigi", "Gianluigi Buffon")).toBe(false);
   });
 
@@ -43,6 +47,7 @@ describe("FiguTrivia scoring & name matching", () => {
     expect(getSurnameInitials("Antonio Di Natale")).toBe("D. N.");
     expect(getSurnameInitials("Danilo D'Ambrosio")).toBe("D'A.");
     expect(getSurnameInitials("Gian Marco Ferrari")).toBe("F.");
+    expect(getSurnameInitials("Mikael Egill Ellertsson")).toBe("E.");
   });
 });
 

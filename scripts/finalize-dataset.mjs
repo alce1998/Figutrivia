@@ -66,6 +66,9 @@ const OVERRIDES = {
       "https://img.a.transfermarkt.technology/portrait/big/555015-1695028065.jpg",
     photo_kind: "tm",
   },
+  "255744": {
+    name: "Samir",
+  },
   "102150": {
     photo_source:
       "https://img.a.transfermarkt.technology/portrait/big/s_102150_123_2013_10_02_1.jpg",

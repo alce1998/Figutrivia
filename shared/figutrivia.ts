@@ -214,6 +214,18 @@ const COMPOUND_GIVEN_NAMES = new Set([
   "paulo cesar",
   "paulo roberto",
   "pedro pablo",
+  "mikael egill",
+  "pietro paolo",
+  "gian pietro",
+  "salvatore antonio",
+  "gian piero",
+  "antonio elia",
+  "pier giuseppe",
+  "juan sebastian",
+  "miguel angel",
+  "rufo emiliano",
+  "juan manuel",
+  "luis pedro",
 ]);
 
 export function extractSurname(fullName: string): string {
@@ -234,10 +246,20 @@ export function matchesPlayerName(guess: string, fullName: string): boolean {
   const normSurname = normalizePlayerStr(extractSurname(fullName));
   if (!normGuess) return false;
   if (normGuess === normFull || normGuess === normSurname) return true;
-  // Also allow "a" for "ae" (e.g. Elkjar / Elkjaer for Elkjær) and "oe" for "o" (e.g. Joergensen / Jorgensen)
-  const altGuess = normGuess.replace(/ae/g, "a").replace(/oe/g, "o");
-  const altFull = normFull.replace(/ae/g, "a").replace(/oe/g, "o");
-  const altSurname = normSurname.replace(/ae/g, "a").replace(/oe/g, "o");
+  if (normFull === "samir" && normGuess === "samir caetano") return true;
+  // Also allow "a" for "ae" (e.g. Elkjar / Elkjaer for Elkjær), "oe" for "o" (e.g. Joergensen / Jorgensen), and "ellertson" for "ellertsson"
+  const altGuess = normGuess
+    .replace(/ae/g, "a")
+    .replace(/oe/g, "o")
+    .replace(/ellertsson/g, "ellertson");
+  const altFull = normFull
+    .replace(/ae/g, "a")
+    .replace(/oe/g, "o")
+    .replace(/ellertsson/g, "ellertson");
+  const altSurname = normSurname
+    .replace(/ae/g, "a")
+    .replace(/oe/g, "o")
+    .replace(/ellertsson/g, "ellertson");
   return altGuess === altFull || altGuess === altSurname;
 }
 
