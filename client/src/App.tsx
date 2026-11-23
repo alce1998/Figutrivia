@@ -367,12 +367,13 @@ export default function App() {
   const ranges = useMemo(() => {
     const total = decadePlayers.length;
     const step = 150;
-    const out: { label: string; min: number; max: number }[] = [];
+    const out: { label: string; min: number; max: number }[] = [
+      { label: "Tutte", min: 1, max: 999999 },
+    ];
     for (let start = 1; start <= total; start += step) {
       const end = Math.min(total, start + step - 1);
       out.push({ label: `${start}–${end}`, min: start, max: end });
     }
-    out.push({ label: "Tutte", min: 1, max: 999999 });
     return out;
   }, [decadePlayers.length]);
 
