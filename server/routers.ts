@@ -20,6 +20,7 @@ import {
   PACK_COST,
   PACK_SIZE,
   TROPHIES,
+  TROPHY_REWARD_POINTS,
   getAlbumSections,
   getPointsForSection,
   matchesPlayerName,
@@ -125,6 +126,31 @@ async function evaluateAndUnlockTrophies(
       newlyUnlocked.push(id);
     }
   }
+
+  if (newlyUnlocked.length > 0) {
+    const bonusPoints = newlyUnlocked.length * TROPHY_REWARD_POINTS;
+    const ptsRow = await db
+      .select()
+      .from(figutriviaPoints)
+      .where(eq(figutriviaPoints.userId, userId))
+      .limit(1);
+    if (ptsRow.length > 0) {
+      await db
+        .update(figutriviaPoints)
+        .set({
+          points: ptsRow[0].points + bonusPoints,
+          totalEarned: ptsRow[0].totalEarned + bonusPoints,
+        })
+        .where(eq(figutriviaPoints.userId, userId));
+    } else {
+      await db.insert(figutriviaPoints).values({
+        userId,
+        points: bonusPoints,
+        totalEarned: bonusPoints,
+      });
+    }
+  }
+
   return newlyUnlocked;
 }
 
@@ -419,11 +445,15 @@ export const appRouter = router({
           getDiscoveryStatsForPlayer(db, player.player_id),
         ]);
 
+        const trophyBonus =
+          newlyUnlockedTrophies.length * TROPHY_REWARD_POINTS;
+
         return {
           correct: true as const,
           alreadySolved: false,
           pointsAwarded: awarded,
-          newPoints: currentPoints + awarded,
+          trophyBonusPoints: trophyBonus,
+          newPoints: currentPoints + awarded + trophyBonus,
           newlyUnlockedTrophies,
           discoveryStats,
         };
@@ -597,126 +627,145 @@ export const appRouter = router({
         };
       }),
 
-    buyPack: protectedProcedure.mutation(async ({ ctx }) => {
-      const db = await getDb();
-      if (!db) throw new Error("Database not available");
+    buyPack: protectedProcedure
+      .input(
+        z.object({
+          decade: z.enum([
+            "1980-89",
+            "1990-99",
+            "2000-09",
+            "2010-19",
+            "2020-oggi",
+          ]),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
 
-      const ptsRows = await db
-        .select()
-        .from(figutriviaPoints)
-        .where(eq(figutriviaPoints.userId, ctx.user.id))
-        .limit(1);
-      const currentPoints = ptsRows[0]?.points ?? 0;
-
-      if (currentPoints < PACK_COST) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `Punti indizio insufficienti! Servono ${PACK_COST} pt per aprire un pacchetto (hai ${currentPoints} pt).`,
-        });
-      }
-
-      const nextPoints = currentPoints - PACK_COST;
-      await db
-        .update(figutriviaPoints)
-        .set({ points: nextPoints })
-        .where(eq(figutriviaPoints.userId, ctx.user.id));
-
-      // Estrai 5 figurine casuali con probabilità uniforme su tutto il database
-      const allPlayers = getAllPlayers();
-      const pool = [...allPlayers];
-      const drawnPlayers = [];
-      const countToDraw = Math.min(PACK_SIZE, pool.length);
-      for (let i = 0; i < countToDraw; i++) {
-        const randIdx = i + Math.floor(Math.random() * (pool.length - i));
-        const tmp = pool[i];
-        pool[i] = pool[randIdx];
-        pool[randIdx] = tmp;
-        drawnPlayers.push(pool[i]);
-      }
-
-      const drawnIds = drawnPlayers.map((p) => p.player_id);
-
-      const [existingProgressRows, receivedGiftsRows] = await Promise.all([
-        db
+        const ptsRows = await db
           .select()
-          .from(figutriviaProgress)
-          .where(
-            and(
-              eq(figutriviaProgress.userId, ctx.user.id),
-              inArray(figutriviaProgress.playerId, drawnIds)
-            )
-          ),
-        db
-          .select({ playerId: figutriviaMancolistaGifts.playerId })
-          .from(figutriviaMancolistaGifts)
-          .where(
-            and(
-              eq(figutriviaMancolistaGifts.recipientUserId, ctx.user.id),
-              inArray(figutriviaMancolistaGifts.playerId, drawnIds)
-            )
-          ),
-      ]);
+          .from(figutriviaPoints)
+          .where(eq(figutriviaPoints.userId, ctx.user.id))
+          .limit(1);
+        const currentPoints = ptsRows[0]?.points ?? 0;
 
-      const existingByPlayerId = new Map(
-        existingProgressRows.map((r) => [r.playerId, r])
-      );
-      const giftedSet = new Set(receivedGiftsRows.map((g) => g.playerId));
+        if (currentPoints < PACK_COST) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: `Punti indizio insufficienti! Servono ${PACK_COST} pt per aprire un pacchetto (hai ${currentPoints} pt).`,
+          });
+        }
 
-      const cards: Array<{ playerId: string; isNew: boolean }> = [];
-      const newPlayerIds: string[] = [];
+        const nextPoints = currentPoints - PACK_COST;
+        await db
+          .update(figutriviaPoints)
+          .set({ points: nextPoints })
+          .where(eq(figutriviaPoints.userId, ctx.user.id));
 
-      for (const p of drawnPlayers) {
-        const ex = existingByPlayerId.get(p.player_id);
-        const alreadySolved =
-          (ex && ex.solved === 1) || giftedSet.has(p.player_id);
-        const isNew = !alreadySolved;
-        cards.push({ playerId: p.player_id, isNew });
+        // Estrai 5 figurine casuali con probabilità uniforme SOLO tra i giocatori dell'album scelto
+        const decadePlayers = getAllPlayers().filter(
+          (p) => p.album_decade === input.decade
+        );
+        const pool = [...decadePlayers];
+        const drawnPlayers = [];
+        const countToDraw = Math.min(PACK_SIZE, pool.length);
+        for (let i = 0; i < countToDraw; i++) {
+          const randIdx = i + Math.floor(Math.random() * (pool.length - i));
+          const tmp = pool[i];
+          pool[i] = pool[randIdx];
+          pool[randIdx] = tmp;
+          drawnPlayers.push(pool[i]);
+        }
 
-        if (isNew) {
-          newPlayerIds.push(p.player_id);
-          if (ex) {
-            await db
-              .update(figutriviaProgress)
-              .set({
+        const drawnIds = drawnPlayers.map((p) => p.player_id);
+
+        const [existingProgressRows, receivedGiftsRows] = await Promise.all([
+          db
+            .select()
+            .from(figutriviaProgress)
+            .where(
+              and(
+                eq(figutriviaProgress.userId, ctx.user.id),
+                inArray(figutriviaProgress.playerId, drawnIds)
+              )
+            ),
+          db
+            .select({ playerId: figutriviaMancolistaGifts.playerId })
+            .from(figutriviaMancolistaGifts)
+            .where(
+              and(
+                eq(figutriviaMancolistaGifts.recipientUserId, ctx.user.id),
+                inArray(figutriviaMancolistaGifts.playerId, drawnIds)
+              )
+            ),
+        ]);
+
+        const existingByPlayerId = new Map(
+          existingProgressRows.map((r) => [r.playerId, r])
+        );
+        const giftedSet = new Set(receivedGiftsRows.map((g) => g.playerId));
+
+        const cards: Array<{ playerId: string; isNew: boolean }> = [];
+        const newPlayerIds: string[] = [];
+
+        for (const p of drawnPlayers) {
+          const ex = existingByPlayerId.get(p.player_id);
+          const alreadySolved =
+            (ex && ex.solved === 1) || giftedSet.has(p.player_id);
+          const isNew = !alreadySolved;
+          cards.push({ playerId: p.player_id, isNew });
+
+          if (isNew) {
+            newPlayerIds.push(p.player_id);
+            if (ex) {
+              await db
+                .update(figutriviaProgress)
+                .set({
+                  solved: 1,
+                  solvedAt: new Date(),
+                })
+                .where(eq(figutriviaProgress.id, ex.id));
+            } else {
+              await db.insert(figutriviaProgress).values({
+                userId: ctx.user.id,
+                playerId: p.player_id,
                 solved: 1,
+                hintsUsed: JSON.stringify([]),
+                pointsAwarded: 0,
                 solvedAt: new Date(),
-              })
-              .where(eq(figutriviaProgress.id, ex.id));
-          } else {
-            await db.insert(figutriviaProgress).values({
-              userId: ctx.user.id,
-              playerId: p.player_id,
-              solved: 1,
-              hintsUsed: JSON.stringify([]),
-              pointsAwarded: 0,
-              solvedAt: new Date(),
-            });
+              });
+            }
           }
         }
-      }
 
-      if (newPlayerIds.length > 0) {
-        await db
-          .delete(figutriviaMancolista)
-          .where(
-            and(
-              eq(figutriviaMancolista.userId, ctx.user.id),
-              inArray(figutriviaMancolista.playerId, newPlayerIds)
-            )
-          );
-      }
+        if (newPlayerIds.length > 0) {
+          await db
+            .delete(figutriviaMancolista)
+            .where(
+              and(
+                eq(figutriviaMancolista.userId, ctx.user.id),
+                inArray(figutriviaMancolista.playerId, newPlayerIds)
+              )
+            );
+        }
 
-      const newlyUnlockedTrophies =
-        newPlayerIds.length > 0
-          ? await evaluateAndUnlockTrophies(db, ctx.user.id)
-          : [];
+        const newlyUnlockedTrophies =
+          newPlayerIds.length > 0
+            ? await evaluateAndUnlockTrophies(db, ctx.user.id)
+            : [];
 
-      return {
-        cards,
-        newPoints: nextPoints,
-        newlyUnlockedTrophies,
-      };
-    }),
+        const trophyBonus =
+          newlyUnlockedTrophies.length * TROPHY_REWARD_POINTS;
+
+        return {
+          decade: input.decade,
+          cards,
+          trophyBonusPoints: trophyBonus,
+          newPoints: nextPoints + trophyBonus,
+          newlyUnlockedTrophies,
+        };
+      }),
   }),
 
   mancolista: router({

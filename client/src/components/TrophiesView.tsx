@@ -3,6 +3,7 @@ import { CheckCircle2, Lock, Puzzle, Trophy } from "lucide-react";
 import {
   ALBUM_DECADES,
   TROPHIES,
+  TROPHY_REWARD_POINTS,
   getAlbumSections,
   type AlbumDecadeKey,
   type FigurinaPlayer,
@@ -149,11 +150,16 @@ export function TrophiesView({
 
   return (
     <div className="space-y-6">
-      {/* Punteggi per sezione album */}
-      <div className="bg-amber-50 border-4 border-black p-4 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
-        <h3 className="font-display font-black uppercase text-sm mb-2">
-          Sistema Punteggio Punti Indizio per Sezione dell'Album
-        </h3>
+      {/* Punteggi per sezione album + Bonus Trofei */}
+      <div className="bg-amber-50 border-4 border-black p-4 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-display font-black uppercase text-sm">
+            Sistema Punteggio Punti Indizio per Sezione dell'Album
+          </h3>
+          <span className="bg-emerald-400 text-black font-display font-black uppercase text-xs px-2.5 py-1 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            🏆 Ogni Trofeo Sbloccato = +{TROPHY_REWARD_POINTS} ⭐ Punti Indizio!
+          </span>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
           {[
             { range: "1ª Sezione (1–150)", pts: "1 pt" },
@@ -206,8 +212,13 @@ export function TrophiesView({
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{t.icon}</span>
                     <div>
-                      <div className="font-display font-black uppercase text-sm">
-                        {t.title}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-display font-black uppercase text-sm">
+                          {t.title}
+                        </span>
+                        <span className="bg-amber-300 text-black font-mono font-black text-[10px] px-1.5 py-0.5 border border-black">
+                          +{TROPHY_REWARD_POINTS} ⭐
+                        </span>
                       </div>
                       <div className="text-xs text-gray-600 font-medium">
                         {desc}
@@ -316,6 +327,9 @@ export function TrophiesView({
                           <span className="text-[11px] font-black uppercase bg-gray-900 text-amber-400 px-2 py-0.5 border border-black">
                             Parti Trofeo: {completedParts}/{sectionStats.length}
                           </span>
+                          <span className="bg-amber-300 text-black font-mono font-black text-[10px] px-1.5 py-0.5 border border-black">
+                            +{TROPHY_REWARD_POINTS} ⭐
+                          </span>
                         </div>
                         <div className="font-display font-black uppercase text-sm mt-1">
                           {t.title}
@@ -381,8 +395,13 @@ export function TrophiesView({
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] font-black mt-0.5">
-                            Sez. {sec.label}
+                          <div className="flex items-center justify-between gap-1 mt-0.5">
+                            <span className="text-[11px] font-black">
+                              Sez. {sec.label}
+                            </span>
+                            <span className="bg-white text-black font-mono font-black text-[9px] px-1 border border-black">
+                              +{TROPHY_REWARD_POINTS}⭐
+                            </span>
                           </div>
                           <div className="text-[10px] font-mono font-bold text-gray-700">
                             {sec.solvedInSec}/{sec.count}

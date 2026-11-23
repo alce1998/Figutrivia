@@ -11,6 +11,7 @@ import {
 import {
   ALBUM_DECADES,
   PACK_COST,
+  type AlbumDecadeKey,
   type FigurinaPlayer,
 } from "@shared/figutrivia";
 import {
@@ -26,10 +27,11 @@ export interface DrawnPackCard {
 }
 
 interface PackOpeningModalProps {
+  decade: AlbumDecadeKey;
   cards: DrawnPackCard[];
   currentPoints: number;
   isBuyingAnother: boolean;
-  onBuyAnother: () => void;
+  onBuyAnother: (decade: AlbumDecadeKey) => void;
   onClose: () => void;
   onOpenPlayerInAlbum: (player: FigurinaPlayer) => void;
 }
@@ -50,6 +52,7 @@ const CONFETTI_PARTICLES = [
 ];
 
 export function PackOpeningModal({
+  decade,
   cards,
   currentPoints,
   isBuyingAnother,
@@ -95,6 +98,7 @@ export function PackOpeningModal({
   const player = currentCard.player;
   const isNew = currentCard.isNew;
   const decadeInfo = ALBUM_DECADES.find((d) => d.key === player.album_decade);
+  const packDecadeInfo = ALBUM_DECADES.find((d) => d.key === decade);
   const newCardsCount = cards.filter((c) => c.isNew).length;
 
   return (
@@ -150,14 +154,18 @@ export function PackOpeningModal({
 
       <div className="bg-amber-50 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-w-2xl w-full p-3.5 sm:p-5 space-y-3.5 animate-in fade-in zoom-in-95 duration-200">
         {/* Top Header */}
-        <div className="bg-amber-400 border-3 border-black px-3 py-2 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between gap-2">
+        <div
+          className={`${
+            packDecadeInfo?.badgeColor ?? "bg-amber-400"
+          } border-3 border-black px-3 py-2 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between gap-2`}
+        >
           <div className="flex items-center gap-2 text-black min-w-0">
             <PackageOpen className="w-5 h-5 flex-shrink-0" />
             <div className="min-w-0">
               <div className="font-display font-black uppercase text-xs sm:text-sm leading-tight truncate">
                 {viewMode === "card"
-                  ? `Apertura Pacchetto • Figurina ${cardIdx + 1} di ${cards.length}`
-                  : `Riepilogo Pacchetto (${newCardsCount} ${
+                  ? `Pacchetto ${packDecadeInfo?.label ?? decade} • Figurina ${cardIdx + 1} di ${cards.length}`
+                  : `Riepilogo Pacchetto ${packDecadeInfo?.label ?? decade} (${newCardsCount} ${
                       newCardsCount === 1 ? "Manca!" : "Mancano!"
                     })`}
               </div>
@@ -526,14 +534,16 @@ export function PackOpeningModal({
               <button
                 type="button"
                 disabled={currentPoints < PACK_COST || isBuyingAnother}
-                onClick={onBuyAnother}
-                className="flex-1 px-4 py-2 bg-amber-400 hover:bg-amber-300 text-black font-display font-black uppercase text-xs sm:text-sm border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] disabled:opacity-45 flex items-center justify-center gap-1.5"
+                onClick={() => onBuyAnother(decade)}
+                className={`flex-1 px-4 py-2 ${
+                  packDecadeInfo?.badgeColor ?? "bg-amber-400"
+                } hover:brightness-95 text-black font-display font-black uppercase text-xs sm:text-sm border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] disabled:opacity-45 flex items-center justify-center gap-1.5`}
               >
                 <PackageOpen className="w-4 h-4" />
                 <span>
                   {isBuyingAnother
                     ? "Apertura in corso..."
-                    : `Apri altro pacchetto (⭐ ${PACK_COST} pt)`}
+                    : `Altro Pacchetto ${packDecadeInfo?.label ?? decade} (⭐ ${PACK_COST} pt)`}
                 </span>
               </button>
 

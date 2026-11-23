@@ -18,6 +18,7 @@ import {
   MAX_DAILY_GIFTS,
   MAX_MANCOLISTA_SIZE,
   TROPHIES,
+  TROPHY_REWARD_POINTS,
   getAlbumSections,
   getPointsForSection,
   getSurnameInitials,
@@ -161,9 +162,12 @@ export function MancolisteView({
         for (const tid of res.newlyUnlockedTrophies) {
           const t = TROPHIES.find((x) => x.id === tid);
           if (t) {
-            toast.success(`${t.icon} Trofeo sbloccato: ${t.title}!`, {
-              duration: 5000,
-            });
+            toast.success(
+              `${t.icon} Trofeo sbloccato: ${t.title}! (+${TROPHY_REWARD_POINTS} ⭐ pt)`,
+              {
+                duration: 5000,
+              }
+            );
           } else if (tid.startsWith("album_") && tid.includes("_sec_")) {
             const m = tid.match(/^album_(.+)_sec_(\d+)$/);
             if (m) {
@@ -176,7 +180,7 @@ export function MancolisteView({
               );
               const secInfo = secs.find((s) => s.index === secIdx);
               toast.success(
-                `🧩 Parte ${secIdx}/${secs.length} del Trofeo Album ${decInfo?.label ?? decKey} sbloccata (Sez. ${secInfo?.label ?? secIdx})!`,
+                `🧩 Parte ${secIdx}/${secs.length} del Trofeo Album ${decInfo?.label ?? decKey} sbloccata (Sez. ${secInfo?.label ?? secIdx})! (+${TROPHY_REWARD_POINTS} ⭐ pt)`,
                 { duration: 5500 }
               );
             }

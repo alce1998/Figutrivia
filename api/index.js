@@ -160,6 +160,7 @@ var MAX_MANCOLISTA_SIZE = 50;
 var MAX_DAILY_GIFTS = 5;
 var PACK_COST = 20;
 var PACK_SIZE = 5;
+var TROPHY_REWARD_POINTS = 100;
 function getPointsForSection(numero) {
   if (numero <= 150) return 1;
   if (numero <= 300) return 2;
@@ -638,6 +639,22 @@ async function evaluateAndUnlockTrophies(db, userId) {
       newlyUnlocked.push(id);
     }
   }
+  if (newlyUnlocked.length > 0) {
+    const bonusPoints = newlyUnlocked.length * TROPHY_REWARD_POINTS;
+    const ptsRow = await db.select().from(figutriviaPoints).where(eq2(figutriviaPoints.userId, userId)).limit(1);
+    if (ptsRow.length > 0) {
+      await db.update(figutriviaPoints).set({
+        points: ptsRow[0].points + bonusPoints,
+        totalEarned: ptsRow[0].totalEarned + bonusPoints
+      }).where(eq2(figutriviaPoints.userId, userId));
+    } else {
+      await db.insert(figutriviaPoints).values({
+        userId,
+        points: bonusPoints,
+        totalEarned: bonusPoints
+      });
+    }
+  }
   return newlyUnlocked;
 }
 async function getDiscoveryStatsForPlayer(db, playerId) {
@@ -857,11 +874,13 @@ var appRouter = router({
         evaluateAndUnlockTrophies(db, ctx.user.id),
         getDiscoveryStatsForPlayer(db, player.player_id)
       ]);
+      const trophyBonus = newlyUnlockedTrophies.length * TROPHY_REWARD_POINTS;
       return {
         correct: true,
         alreadySolved: false,
         pointsAwarded: awarded,
-        newPoints: currentPoints + awarded,
+        trophyBonusPoints: trophyBonus,
+        newPoints: currentPoints + awarded + trophyBonus,
         newlyUnlockedTrophies,
         discoveryStats
       };
@@ -994,7 +1013,17 @@ var appRouter = router({
         recipient: ENV.errorReportEmail
       };
     }),
-    buyPack: protectedProcedure.mutation(async ({ ctx }) => {
+    buyPack: protectedProcedure.input(
+      z.object({
+        decade: z.enum([
+          "1980-89",
+          "1990-99",
+          "2000-09",
+          "2010-19",
+          "2020-oggi"
+        ])
+      })
+    ).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const ptsRows = await db.select().from(figutriviaPoints).where(eq2(figutriviaPoints.userId, ctx.user.id)).limit(1);
@@ -1007,8 +1036,10 @@ var appRouter = router({
       }
       const nextPoints = currentPoints - PACK_COST;
       await db.update(figutriviaPoints).set({ points: nextPoints }).where(eq2(figutriviaPoints.userId, ctx.user.id));
-      const allPlayers = getAllPlayers();
-      const pool = [...allPlayers];
+      const decadePlayers = getAllPlayers().filter(
+        (p) => p.album_decade === input.decade
+      );
+      const pool = [...decadePlayers];
       const drawnPlayers = [];
       const countToDraw = Math.min(PACK_SIZE, pool.length);
       for (let i = 0; i < countToDraw; i++) {
@@ -1072,9 +1103,12 @@ var appRouter = router({
         );
       }
       const newlyUnlockedTrophies = newPlayerIds.length > 0 ? await evaluateAndUnlockTrophies(db, ctx.user.id) : [];
+      const trophyBonus = newlyUnlockedTrophies.length * TROPHY_REWARD_POINTS;
       return {
+        decade: input.decade,
         cards,
-        newPoints: nextPoints,
+        trophyBonusPoints: trophyBonus,
+        newPoints: nextPoints + trophyBonus,
         newlyUnlockedTrophies
       };
     })
